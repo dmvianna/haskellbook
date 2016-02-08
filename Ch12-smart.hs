@@ -114,10 +114,10 @@ countTheBeforeVowel' strings =
     go strings 0
         where
           go (_:[]) acc = acc
-          go (aWord:bWord@(ch:_):twords) acc =
+          go (aWord:bWord@(ch:_):tWords) acc =
               if aWord == "the" && ch `elem` "aeiou"
-              then acc + 1
-              else go (bWord:twords) acc
+              then go (bWord:tWords) (acc + 1)
+              else go (bWord:tWords) acc
 
 
 
