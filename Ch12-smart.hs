@@ -264,4 +264,22 @@ partitionEithers' xs = (lefts' xs, rights' xs)
 
 -- 4. eitherMaybe
 
--- eitherMaybe :: (b -> c) -> Either a b -> Maybe c
+eitherMaybe' :: (b -> c) -> Either a b -> Maybe c
+eitherMaybe' f x =
+  case x of
+    Right b -> Just $ f b
+    Left _ -> Nothing
+
+-- 5. General Either catamorphism
+
+either' :: (a -> c) -> (b -> c) -> Either a b -> c
+either' f g e =
+  case e of
+    Right b -> g b
+    Left a -> f a
+
+-- 6. Use either'
+
+eitherMaybe'' :: (b -> c) -> Either a b -> Maybe c
+eitherMaybe'' f = either' (\x -> Nothing) (Just . f)
+
