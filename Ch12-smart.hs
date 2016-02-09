@@ -179,3 +179,89 @@ integerToNat x = if x < 0
 
 -- Small library for Maybe
 
+-- 1. Boolean tests
+
+isJust :: Maybe a -> Bool
+isJust Nothing = False
+isJust (Just _) = True
+
+isNothing :: Maybe a -> Bool
+isNothing = not . isJust
+
+-- 2. Maybe catamorphism
+
+mayybee :: b -> (a -> b) -> Maybe a -> b
+mayybee fallback f m =
+    case m of
+      Nothing -> fallback
+      Just x -> f x
+
+-- 3. Fallback value
+
+fromMaybe :: a -> Maybe a -> a
+fromMaybe = flip mayybee id
+
+-- 4. Convert between List and Maybe
+
+listToMaybe :: [a] -> Maybe a
+listToMaybe [] = Nothing
+listToMaybe (x:_) = Just x
+
+maybeToList :: Maybe a -> [a]
+maybeToList Nothing = []
+maybeToList (Just x) = [x]
+
+-- 5. Drop Nothings
+
+catMaybes :: [Maybe a] -> [a]
+catMaybes = onlyJust
+
+-- 6. "sequence"
+
+flipMaybe :: [Maybe a] -> Maybe [a]
+flipMaybe [] = Nothing
+flipMaybe list =
+    go list []
+      where
+        go [] acc = Just $ reverse acc
+        go (x:xs) acc =
+          case x of
+            Just y -> go xs (y:acc)
+            Nothing -> Nothing
+
+-----------------------------------
+
+-- Small library for Either
+
+-- 1. Use foldr
+
+left' :: Either a b -> Maybe a
+left' (Left a) = Just a
+left' (Right _) = Nothing
+
+lefts'' :: [Either a b] -> [Maybe a]
+lefts'' = foldr (\ab acc -> acc ++ [left' ab]) []
+
+lefts' :: [Either a b] -> [a]
+lefts' = catMaybes . lefts''
+
+-- 2. Use foldr
+
+right' :: Either a b -> Maybe b
+right' (Left _) = Nothing
+right' (Right a) = Just a
+
+rights'' :: [Either a b] -> [Maybe b]
+rights'' = foldr (\ab acc -> acc ++ [right' ab]) []
+
+rights' :: [Either a b] -> [b]
+rights' = catMaybes . rights''
+
+-- 3. Partition Eithers
+
+partitionEithers' :: [Either a b] -> ([a], [b])
+partitionEithers' xs = (lefts' xs, rights' xs)
+
+-- 4. eitherMaybe
+
+-- eitherMaybe :: (b -> c) -> Either a b -> Maybe c
