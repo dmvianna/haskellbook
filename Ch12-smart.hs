@@ -122,8 +122,60 @@ countTheBeforeVowel' strings =
 
 
 countTheBeforeVowel :: String -> Int
-countTheBeforeVowel x = countTheBeforeVowel' $ onlyJust $ map justWords $ splitWords x
+countTheBeforeVowel x = countTheBeforeVowel' . onlyJust $ map justWords $ splitWords x
 
 -----------------------------------
 
 -- 3. Return the number of letters that are vowels in a word
+
+-- Creates Just for words
+
+justVowels :: Char -> Maybe Char
+justVowels c = if c `elem` "aeiou" then Just c else Nothing
+
+countVowels :: String -> Integer
+countVowels x = toInteger . length . onlyJust $ map justVowels x
+
+---------------------------------------
+
+-- Validate the word
+
+newtype Word' =
+    Word' String
+    deriving (Eq, Show)
+
+vowels = "aeiou" -- not used, had it in previous exercise
+
+mkWord :: String -> Maybe Word'
+mkWord x = if countVowels x > toInteger (length x) - countVowels x
+           then Nothing
+           else Just $ Word' x
+
+--------------------------------------
+
+-- It's only natural
+
+data Nat = Zero
+         | Succ Nat
+           deriving (Eq, Show)
+
+natToInteger :: Nat -> Integer
+natToInteger x =
+    case x of
+      Zero -> 0
+      Succ n -> succ $ natToInteger n
+
+integerToNat' :: Integer -> Nat
+integerToNat' x = if x == 0
+                  then Zero
+                  else Succ $ integerToNat' $ pred x
+
+integerToNat :: Integer -> Maybe Nat
+integerToNat x = if x < 0
+                 then Nothing
+                 else Just $ integerToNat' x
+
+-----------------------------------------
+
+-- Small library for Maybe
+
