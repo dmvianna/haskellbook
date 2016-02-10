@@ -46,7 +46,12 @@ myIterate f x = x:(myIterate f (f x))
 -- 2. Write myUnfoldr using direct recursion
 
 myUnfoldr :: (b -> Maybe (a, b)) -> b -> [a]
-myUnfoldr = undefined
+myUnfoldr f x =
+    case (f x) of
+      Just (a, b) -> a : myUnfoldr f b
+      Nothing -> []
+
+-- IN YOUR FACE
 
 -- 3. Stuff that. Rewrite myIterate using unfoldr
 
