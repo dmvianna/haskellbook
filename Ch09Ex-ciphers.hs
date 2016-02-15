@@ -19,12 +19,6 @@ inCaesar n = map (charToRight n)
 unCaesar :: Int -> String -> String
 unCaesar n = map (charToRight $ negate n)
 
--- vigToRight :: Char -> Char -> Char
--- vigToRight k x
---     | x elem ['a'..'z'] = go 
-
-
-
 vigenere :: (Int -> Int) -> String -> String -> String
 vigenere switch baseKeys baseExs =
   case (baseKeys, baseExs) of
