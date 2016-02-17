@@ -76,7 +76,29 @@ prop_timesComm =
   forAll (genTuple :: Gen (Int, Int))
   (uncurry timesCommutative)
 
+-- 5. div vs mod
 
+quotVsRem :: Integral a => a -> a -> Bool
+quotVsRem x y = (quot x y) * y + (rem x y) == x
+
+divVsMod :: Integral a => a -> a -> Bool
+divVsMod x y = (div x y) * y + (mod x y) == x
+
+genTupleNonZero :: (Arbitrary a, Num a, Eq a) => Gen (a, a)
+genTupleNonZero = do
+  x <- arbitrary `suchThat` (/= 0)
+  y <- arbitrary `suchThat` (/= 0)
+  return (x, y)
+
+prop_quotRem :: Property
+prop_quotRem =
+  forAll (genTupleNonZero :: Gen (Int, Int))
+  (uncurry quotVsRem)
+
+prop_divMod :: Property
+prop_divMod =
+  forAll (genTupleNonZero :: Gen (Int, Int))
+  (uncurry divVsMod)
 
 -- common stuff
 
@@ -96,3 +118,7 @@ main = do
   quickCheck prop_timesAssoc
   putStrLn "\nCheck timesCommutative"
   quickCheck prop_timesComm
+  putStrLn "\nCheck quotVsRem"
+  quickCheck prop_quotRem
+  putStrLn "\nCheck divVsMod"
+  quickCheck prop_divMod
