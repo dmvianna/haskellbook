@@ -25,7 +25,9 @@ prop_identity =
 genList :: Gen [Int]
 genList = do
   a <- arbitrary
-  return [a, a, a, a, a]
+  b <- arbitrary `suchThat` (/= a)
+  c <- arbitrary `suchThat` (`notElem` [a, b])
+  return [a, b, c]
 
 listOrdered :: (Ord a) => [a] -> Bool
 listOrdered xs = snd $ foldr go (Nothing, True) xs
@@ -125,6 +127,30 @@ prop_hatComm =
   forAll (genTuplePos :: Gen (Int, Int))
   (uncurry $ commutative (^))
 
+-- 7. reverse reverse list == list
+
+prop_reverse :: Property
+prop_reverse =
+  forAll genList
+  (\x -> (reverse . reverse) x == id x)
+
+-- 8. ($)
+
+prop_dollar :: Property
+prop_dollar =
+  forAll divisor
+  (\x -> ((-) x $ x + x) == (-) x (x + x))
+
+-- 9. Check functions
+
+prop_concat =
+  forAll (genTuple :: Gen ([Int], [Int]))
+  (\(x, y) -> foldr (:) x y == (++) x y)
+
+prop_concat' =
+  forAll (genTuple :: Gen ([Int], [Int]))
+  (\(x, y) -> foldr (++) [] [x, y] == concat [x, y])
+
 
 
 -- common stuff
@@ -153,3 +179,11 @@ main = do
   quickCheck prop_hatComm
   putStrLn "\nCheck if exponentiation is associative"
   quickCheck prop_hatAssoc
+  putStrLn "\nCheck if reverse . reverse == id"
+  quickCheck prop_reverse
+  putStrLn "\nCheck ($)"
+  quickCheck prop_dollar
+  putStrLn "\nCompare foldr (:) and (++)"
+  quickCheck prop_concat
+  putStrLn "\nCompare foldr (++) [] and concat"
+  quickCheck prop_concat'
