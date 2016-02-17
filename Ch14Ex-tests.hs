@@ -39,8 +39,11 @@ prop_listOrdered =
 
 -- 3. Addition
 
-plusAssociative x y z = x + (y + z) == (x + y) + z
-plusCommutative x y = x + y == y + x
+associative :: Eq a => (a -> a -> a) -> a -> a -> a -> Bool
+associative f x y z = x `f` (y `f` z) == (x `f` y) `f` z
+
+commutative :: Eq a => (a -> a -> a) -> a -> a -> Bool
+commutative f x y = x `f` y == y `f` x
 
 genTuple :: Arbitrary a => Gen (a, a)
 genTuple = arbitrary
@@ -54,27 +57,24 @@ untrurry f (a, b, c) = f a b c
 prop_plusAssoc :: Property
 prop_plusAssoc =
   forAll (genThreeple :: Gen (Int, Int, Int))
-  (untrurry plusAssociative)
+  (untrurry $ associative (+))
 
 prop_plusComm :: Property
 prop_plusComm =
   forAll (genTuple :: Gen (Int, Int))
-  (uncurry plusCommutative)
+  (uncurry $ commutative (+))
 
 -- 4. Multiplication
-
-timesAssociative x y z = x * (y * z) == (x * y) * z
-timesCommutative x y = x * y == y * x
 
 prop_timesAssoc :: Property
 prop_timesAssoc =
   forAll (genThreeple :: Gen (Int, Int, Int))
-  (untrurry timesAssociative)
+  (untrurry $ associative (*))
 
 prop_timesComm :: Property
 prop_timesComm =
   forAll (genTuple :: Gen (Int, Int))
-  (uncurry timesCommutative)
+  (uncurry $ commutative (*))
 
 -- 5. div vs mod
 
@@ -100,6 +100,33 @@ prop_divMod =
   forAll (genTupleNonZero :: Gen (Int, Int))
   (uncurry divVsMod)
 
+-- 6. (^)
+
+genTuplePos :: (Arbitrary a, Num a, Ord a) => Gen (a, a)
+genTuplePos = do
+  x <- arbitrary `suchThat` (> 1)
+  y <- arbitrary `suchThat` (> 1)
+  return (x, y)
+
+genThreeplePos :: (Arbitrary a, Num a, Ord a) => Gen (a, a, a)
+genThreeplePos = do
+  x <- arbitrary `suchThat` (> 1)
+  y <- arbitrary `suchThat` (> 1)
+  z <- arbitrary `suchThat` (> 1)
+  return (x, y, z)
+
+prop_hatAssoc :: Property
+prop_hatAssoc =
+  forAll (genThreeplePos :: Gen (Int, Int, Int))
+  (untrurry $ associative (^))
+
+prop_hatComm :: Property
+prop_hatComm =
+  forAll (genTuplePos :: Gen (Int, Int))
+  (uncurry $ commutative (^))
+
+
+
 -- common stuff
 
 main :: IO ()
@@ -122,3 +149,7 @@ main = do
   quickCheck prop_quotRem
   putStrLn "\nCheck divVsMod"
   quickCheck prop_divMod
+  putStrLn "\nCheck if exponentiation is commutative"
+  quickCheck prop_hatComm
+  putStrLn "\nCheck if exponentiation is associative"
+  quickCheck prop_hatAssoc
