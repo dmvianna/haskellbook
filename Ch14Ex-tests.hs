@@ -1,6 +1,9 @@
 
 import Test.QuickCheck
 import Data.List (sort)
+import Data.Char (toUpper)
+
+-- Exercises: using QuickCheck
 
 -- 1. Division
 
@@ -22,7 +25,7 @@ prop_identity =
 
 -- 2. Sorting
 
-genList :: Gen [Int]
+genList :: (Arbitrary a, Eq a) => Gen [a]
 genList = do
   a <- arbitrary
   b <- arbitrary `suchThat` (/= a)
@@ -36,7 +39,7 @@ listOrdered xs = snd $ foldr go (Nothing, True) xs
 
 prop_listOrdered :: Property
 prop_listOrdered =
-    forAll genList
+    forAll (genList :: Gen String)
     (\x -> listOrdered $ sort x)
 
 -- 3. Addition
@@ -47,10 +50,11 @@ associative f x y z = x `f` (y `f` z) == (x `f` y) `f` z
 commutative :: Eq a => (a -> a -> a) -> a -> a -> Bool
 commutative f x y = x `f` y == y `f` x
 
-genTuple :: Arbitrary a => Gen (a, a)
+genTuple :: (Arbitrary a, Arbitrary b) => Gen (a, b)
 genTuple = arbitrary
 
-genThreeple :: Arbitrary a => Gen (a, a, a)
+genThreeple :: (Arbitrary a, Arbitrary b, Arbitrary c) =>
+               Gen (a, b, c)
 genThreeple = arbitrary
 
 untrurry :: (a -> b -> c -> d) -> ((a, b, c) -> d)
@@ -131,7 +135,7 @@ prop_hatComm =
 
 prop_reverse :: Property
 prop_reverse =
-  forAll genList
+  forAll (genList :: Gen [Int])
   (\x -> (reverse . reverse) x == id x)
 
 -- 8. ($)
@@ -143,17 +147,80 @@ prop_dollar =
 
 -- 9. Check functions
 
+prop_concat :: Property
 prop_concat =
   forAll (genTuple :: Gen ([Int], [Int]))
   (\(x, y) -> foldr (:) x y == (++) x y)
 
+prop_concat' :: Property
 prop_concat' =
   forAll (genTuple :: Gen ([Int], [Int]))
   (\(x, y) -> foldr (++) [] [x, y] == concat [x, y])
 
+-- 10. Check property
 
+prop_lengthTake :: Property
+prop_lengthTake =
+  forAll (genTuple :: Gen (Int, [Int]))
+  (\(n, xs) -> length (take n xs) == n)
 
--- common stuff
+-- 11. show . read
+
+prop_showRead :: Property
+prop_showRead =
+  forAll (genList :: Gen String)
+  (\x -> (read (show x)) == x)
+
+-- Failure
+
+genPos :: (Num a, Arbitrary a, Ord a) => Gen a
+genPos = arbitrary `suchThat` (> 0)
+
+square x = x * x
+squareId = square . sqrt
+
+prop_square :: Property
+prop_square =
+  forAll (genPos :: Gen Float)
+  (\x -> squareId x == x)
+
+-- Idempotence
+
+twice f = f . f
+fourTimes = twice . twice
+
+capitalizeWord :: String -> String
+capitalizeWord = map toUpper
+
+prop_capitalizeWord :: Property
+prop_capitalizeWord =
+  forAll (genList :: Gen String)
+  (\x -> capitalizeWord x == twice capitalizeWord x
+         &&
+         capitalizeWord x == fourTimes capitalizeWord x)
+
+prop_sort :: Property
+prop_sort =
+  forAll (genList :: Gen String)
+  (\x -> sort x == twice sort x
+         &&
+         sort x == fourTimes sort x)
+
+-- Make Gen for Fool
+
+data Fool = Fulse | Frue deriving (Eq, Show)
+
+-- 1. Equal probabilities
+
+genFool :: Gen Fool
+genFool = elements [Fulse, Frue]
+
+-- 2. 2/3 Fulse, 1/3 Frue
+
+genUnfair :: Gen Fool
+genUnfair = elements [Frue, Fulse, Fulse]
+
+-- Main
 
 main :: IO ()
 main = do
@@ -187,3 +254,13 @@ main = do
   quickCheck prop_concat
   putStrLn "\nCompare foldr (++) [] and concat"
   quickCheck prop_concat'
+  putStrLn "\nCheck length n take == n"
+  quickCheck prop_lengthTake
+  putStrLn "\nCheck show . read == id"
+  quickCheck prop_showRead
+  putStrLn "\nCheck square . sqrt with Float"
+  quickCheck prop_square
+  putStrLn "\nCheck idempotence capitalizeWord"
+  quickCheck prop_capitalizeWord
+  putStrLn "\nCheck idempotence sort"
+  quickCheck prop_sort
