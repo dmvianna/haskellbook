@@ -33,10 +33,10 @@ testIdEq x x' = (x == x') == (\(Identity a) (Identity b) -> a == b) x x'
 
 
 instance (Show a) => Show (Identity a) where
-  show (Identity a) = show a
+  show (Identity a) = "Identity " ++ show a
 
 testIdShow :: Show a => Identity a -> Bool
-testIdShow x = show x == (\(Identity a) -> show a) x
+testIdShow x = show x == (\(Identity a) -> "Identity " ++ show a) x
 
 genId :: Arbitrary a => Gen (Identity a)
 genId = do
@@ -175,6 +175,75 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d) =>
     Arbitrary (Four a b c d) where
   arbitrary = genFour
 
+-- 6.
+
+newtype BoolConj = BoolConj Bool
+
+instance Semigroup BoolConj where
+  BoolConj True <> BoolConj True = BoolConj True
+  BoolConj _ <> BoolConj _ = BoolConj False
+
+instance Eq BoolConj where
+  BoolConj a == BoolConj a' = a == a'
+
+testBCEq :: BoolConj -> BoolConj -> Bool
+testBCEq x x' = (x == x') == (\(BoolConj a) (BoolConj b) -> a == b) x x'
+
+-- We must test expected behaviour
+testBCConj :: BoolConj -> BoolConj -> Bool
+testBCConj x x' = (\(BoolConj a) -> a) (x <> x') ==
+                  (\(BoolConj a) (BoolConj b) -> a && b) x x'
+
+instance Show BoolConj where
+  show (BoolConj a) = "BoolConj " ++ show a
+
+testBCShow :: BoolConj -> Bool
+testBCShow x = show x == (\(BoolConj a) -> "BoolConj " ++ show a) x
+
+genBC :: Gen BoolConj
+genBC = do
+  b <- arbitrary :: Gen Bool
+  return $ BoolConj b
+
+instance Arbitrary BoolConj where
+  arbitrary = genBC
+
+-- 7.
+
+newtype BoolDisj = BoolDisj Bool
+
+instance Semigroup BoolDisj where
+  BoolDisj False <> BoolDisj False = BoolDisj False
+  BoolDisj _ <> BoolDisj _ = BoolDisj True
+
+instance Eq BoolDisj where
+  BoolDisj a == BoolDisj a' = a == a'
+
+instance Show BoolDisj where
+  show (BoolDisj x) = "BoolDisj " ++ show x
+
+-- generator
+
+genBD :: Gen BoolDisj
+genBD = do
+  b <- arbitrary :: Gen Bool
+  return $ BoolDisj b
+
+instance Arbitrary BoolDisj where
+  arbitrary = genBD
+
+-- tests
+
+testBDDisj :: BoolDisj -> BoolDisj -> Bool
+testBDDisj x x' = (\(BoolDisj a) -> a) (x <> x') ==
+                  (\(BoolDisj a) (BoolDisj b) -> a || b) x x'
+
+testBDEq :: BoolDisj -> BoolDisj -> Bool
+testBDEq x x' = (x == x') == (\(BoolDisj a) (BoolDisj b) -> a == b) x x'
+
+testBDShow :: BoolDisj -> Bool
+testBDShow x = show x == (\(BoolDisj a) -> "BoolDisj " ++ show a) x
+
 
 -- main
 
@@ -188,17 +257,19 @@ type ThreeAssoc = Three S S S -> Three S S S -> Three S S S -> Bool
 type ThreeEq = Three S S S -> Three S S S -> Bool
 type FourAssoc = Four S S S S -> Four S S S S -> Four S S S S -> Bool
 type FourEq = Four S S S S -> Four S S S S -> Bool
-
+type BC = BoolConj
+type BCAssoc = BC -> BC -> BC -> Bool
+type BDAssoc = BoolDisj -> BoolDisj -> BoolDisj -> Bool
 
 main :: IO ()
 main = do
-  putStrLn "\nTrivial"
+  putStrLn "\n Trivial"
   quickCheck (semigroupAssoc :: TrivialAssoc)
-  putStrLn "\nIdentity"
+  putStrLn "\n Identity"
   quickCheck (semigroupAssoc :: IdentityAssoc)
   quickCheck (testIdEq :: IdentityEq)
   quickCheck (testIdShow :: Id String -> Bool)
-  putStrLn "\nTwo"
+  putStrLn "\n Two"
   quickCheck (semigroupAssoc :: TwoAssoc)
   quickCheck (testTwoEq :: TwoEq)
   quickCheck (testTwoShow :: Two Int Float -> Bool)
@@ -210,4 +281,13 @@ main = do
   quickCheck (semigroupAssoc :: FourAssoc)
   quickCheck (testFourEq :: FourEq)
   quickCheck (testFourShow :: Four S S S S -> Bool)
-
+  putStrLn "\n BoolConj"
+  quickCheck (semigroupAssoc :: BCAssoc)
+  quickCheck testBCConj
+  quickCheck testBCEq
+  quickCheck testBCShow
+  putStrLn "\n BoolDisj"
+  quickCheck (semigroupAssoc :: BDAssoc)
+  quickCheck testBDDisj
+  quickCheck testBDEq
+  quickCheck testBDShow
