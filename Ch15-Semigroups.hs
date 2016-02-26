@@ -3,7 +3,6 @@ import Data.Semigroup (Semigroup,
                        (<>))
 import Test.QuickCheck (arbitrary,
                         Arbitrary,
-                        coarbitrary,
                         CoArbitrary,
                         elements,
                         Gen,
@@ -284,8 +283,8 @@ testOr x x' = case (x, x') of
 
 testOrEq :: (Eq a, Eq b) => Or a b -> Or a b -> Bool
 testOrEq x x' = case (x, x') of
-  (Fst _, Snd _) -> False
-  (Snd _, Fst _) -> False
+  (Fst _, Snd _) -> (x == x') == False
+  (Snd _, Fst _) -> (x == x') == False
   (Fst a, Fst b) -> (x == x') == (a == b)
   (Snd a, Snd b) -> (x == x') == (a == b)
 
@@ -353,6 +352,23 @@ instance Semigroup (Validation a b) where
       Failure x <> Failure _ = Failure x
       Success x <> Success _ = Success x
 
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Validation a b) where
+  arbitrary = genValidation
+
+genValidation :: (Arbitrary a, Arbitrary b) => Gen (Validation a b)
+genValidation = do
+  a <- arbitrary
+  b <- arbitrary
+  elements [Failure a, Success b]
+
+testValidSemi :: (Eq a, Eq b) => Validation a b -> Validation a b -> Bool
+testValidSemi x x' = case (x, x') of
+  (Failure a, Success _) -> x <> x' == Failure a
+  (Success _, Failure a) -> x <> x' == Failure a
+  (Failure a, Failure _) -> x <> x' == Failure a
+  (Success a, Success _) -> x <> x' == Success a
+  
+
 -- 12. AccumulateRight
 
 newtype AccumulateRight a b =
@@ -415,7 +431,8 @@ type BDAssoc = BoolDisj -> BoolDisj -> BoolDisj -> Bool
 type OrAssoc = Or Int Char -> Or Int Char -> Or Int Char -> Bool
 type C = Combine
 type CombAssoc = C S S -> C S S -> C S S -> Bool -- unused
-
+type V = Validation
+type ValidAssoc = V S S -> V S S -> V S S -> Bool
 
 main :: IO ()
 main = do
@@ -454,3 +471,7 @@ main = do
   quickCheck (testOrShow :: Or Int Char -> Bool)
   -- putStrLn "\n Combine"
   -- quickCheck (semigroupAssoc :: CombAssoc)
+  putStrLn "\n Validation"
+  quickCheck (semigroupAssoc :: ValidAssoc)
+  quickCheck (testValidSemi :: V S S -> V S S -> Bool)
+  
