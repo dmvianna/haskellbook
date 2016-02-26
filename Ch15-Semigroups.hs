@@ -244,6 +244,86 @@ testBDEq x x' = (x == x') == (\(BoolDisj a) (BoolDisj b) -> a == b) x x'
 testBDShow :: BoolDisj -> Bool
 testBDShow x = show x == (\(BoolDisj a) -> "BoolDisj " ++ show a) x
 
+-- 8. Or Semigroup
+
+data Or a b = Fst a | Snd b
+
+-- Or Instances
+
+instance Semigroup (Or a b) where
+  Fst _ <> Fst x = Fst x
+  Fst _ <> Snd x = Snd x
+  Snd x <> Fst _ = Snd x
+  Snd x <> Snd _ = Snd x
+  
+instance (Show a, Show b) => Show (Or a b) where
+    show (Fst x) = "Fst " ++ show x
+    show (Snd x) = "Snd " ++ show x
+
+instance (Eq a, Eq b) => Eq (Or a b) where
+  Fst _ == Snd _ = False
+  Snd _ == Fst _ = False
+  Fst x == Fst x' = x == x'
+  Snd x == Snd x' = x == x'
+
+-- Or tests
+
+testOr :: (Eq a, Eq b) => Or a b -> Or a b -> Bool
+testOr x x' = case (x, x') of
+  (Fst _, Fst b) -> x <> x' == Fst b
+  (Fst _, Snd b) -> x <> x' == Snd b
+  (Snd b, Fst _) -> x <> x' == Snd b
+  (Snd b, Snd _) -> x <> x' == Snd b
+
+testOrEq :: (Eq a, Eq b) => Or a b -> Or a b -> Bool
+testOrEq x x' = case (x, x') of
+  (Fst _, Snd _) -> (x == x') == False
+  (Snd _, Fst _) -> (x == x') == False
+  (Fst a, Fst b) -> (x == x') == (a == b)
+  (Snd a, Snd b) -> (x == x') == (a == b)
+
+testOrShow :: (Show a, Show b) => Or a b -> Bool
+testOrShow x = case x of
+  Fst a -> show x == "Fst " ++ show a
+  Snd a -> show x == "Snd " ++ show a
+
+-- Or generator
+
+genOr :: (Arbitrary a, Arbitrary b) => Gen (Or a b)
+genOr = do
+  a <- arbitrary 
+  b <- arbitrary
+  elements [Fst a, Snd b]
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Or a b) where
+  arbitrary = genOr
+
+-- 9. Combine
+
+newtype Combine a b = Combine { unCombine :: a -> b }
+
+instance Semigroup b => Semigroup (Combine a b) where
+  Combine f <> Combine g = Combine (f <> g)
+
+instance Show (Combine a b) where
+  show (Combine _) = "Combine instance" -- not very useful
+
+-- OK, giving up on Eq instance
+
+-- Combine generator
+
+genFunc :: (CoArbitrary a, Arbitrary b) => Gen (a -> b)
+genFunc = arbitrary
+
+genCombine :: (CoArbitrary a, Arbitrary b) => Gen (Combine a b)
+genCombine = do
+  f <- genFunc
+  return $ Combine f
+
+instance (CoArbitrary a, Arbitrary b) => Arbitrary (Combine a b) where
+    arbitrary = genCombine
+
+-- Certainly useless without Eq or Show instances
 
 -- main
 
@@ -260,6 +340,9 @@ type FourEq = Four S S S S -> Four S S S S -> Bool
 type BC = BoolConj
 type BCAssoc = BC -> BC -> BC -> Bool
 type BDAssoc = BoolDisj -> BoolDisj -> BoolDisj -> Bool
+type OrAssoc = Or Int Char -> Or Int Char -> Or Int Char -> Bool
+type C = Combine
+type CombAssoc = C S S -> C S S -> C S S -> Bool
 
 main :: IO ()
 main = do
@@ -291,3 +374,10 @@ main = do
   quickCheck testBDDisj
   quickCheck testBDEq
   quickCheck testBDShow
+  putStrLn "\n Or"
+  quickCheck (semigroupAssoc :: OrAssoc)
+  quickCheck (testOr :: Or Int Char -> Or Int Char -> Bool)
+  quickCheck (testOrEq :: Or Int Char -> Or Int Char -> Bool)
+  quickCheck (testOrShow :: Or Int Char -> Bool)
+  -- putStrLn "\n Combine"
+  -- quickCheck (semigroupAssoc :: CombAssoc)
