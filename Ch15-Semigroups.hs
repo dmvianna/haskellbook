@@ -277,8 +277,8 @@ testOr x x' = case (x, x') of
 
 testOrEq :: (Eq a, Eq b) => Or a b -> Or a b -> Bool
 testOrEq x x' = case (x, x') of
-  (Fst _, Snd _) -> (x == x') == False
-  (Snd _, Fst _) -> (x == x') == False
+  (Fst _, Snd _) -> False
+  (Snd _, Fst _) -> False
   (Fst a, Fst b) -> (x == x') == (a == b)
   (Snd a, Snd b) -> (x == x') == (a == b)
 
@@ -325,6 +325,71 @@ instance (CoArbitrary a, Arbitrary b) => Arbitrary (Combine a b) where
 
 -- Certainly useless without Eq or Show instances
 
+-- 10. Comp
+
+newtype Comp a = Comp { unComp :: (a -> a) }
+
+instance Semigroup a => Semigroup (Comp a) where
+  Comp x <> Comp x' = Comp (x <> x')
+
+-- Still don't know how to Eq or Show functions
+
+-- 11. Validation
+
+data Validation a b =
+  Failure a | Success b
+  deriving (Eq, Show)
+
+instance Semigroup (Main.Validation a b) where
+      Main.Failure x <> Main.Success _ = Main.Failure x
+      Main.Success _ <> Main.Failure x = Main.Failure x
+      Main.Failure x <> Main.Failure _ = Main.Failure x
+      Main.Success x <> Main.Success _ = Main.Success x
+
+-- 12. AccumulateRight
+
+newtype AccumulateRight a b =
+  AccumulateRight (Validation a b)
+  deriving (Eq, Show)
+
+instance Semigroup b => Semigroup (AccumulateRight a b) where
+  AccumulateRight (Main.Failure x) <>
+    AccumulateRight (Main.Success _) =
+      AccumulateRight (Main.Failure x)
+  AccumulateRight (Main.Failure x) <>
+    AccumulateRight (Main.Failure _) =
+      AccumulateRight (Main.Failure x)
+  AccumulateRight (Main.Success _) <>
+    AccumulateRight (Main.Failure x) =
+      AccumulateRight (Main.Failure x)
+  AccumulateRight (Main.Success x) <>
+    AccumulateRight (Main.Success x') =
+      AccumulateRight (Main.Success (x <> x'))
+
+-- 13. AccumulateBoth
+
+newtype AccumulateBoth a b =
+  AccumulateBoth (Validation a b)
+  deriving (Eq, Show)
+
+instance (Semigroup a, Semigroup b) =>
+    Semigroup (AccumulateBoth a b) where
+        AccumulateBoth (Main.Failure x) <>
+          AccumulateBoth (Main.Failure x') =
+             AccumulateBoth (Main.Failure (x <> x'))
+        AccumulateBoth (Main.Success x) <>
+          AccumulateBoth (Main.Success x') =
+            AccumulateBoth (Main.Success (x <> x'))
+        AccumulateBoth (Main.Success _) <>
+          AccumulateBoth (Main.Failure x) =
+            AccumulateBoth (Main.Failure x)
+        AccumulateBoth (Main.Failure x) <>
+          AccumulateBoth (Main.Success _) =
+            AccumulateBoth (Main.Failure x)
+
+-- Got it, but I'm not testing that monster.
+
+  
 -- main
 
 type S = String
@@ -342,7 +407,8 @@ type BCAssoc = BC -> BC -> BC -> Bool
 type BDAssoc = BoolDisj -> BoolDisj -> BoolDisj -> Bool
 type OrAssoc = Or Int Char -> Or Int Char -> Or Int Char -> Bool
 type C = Combine
-type CombAssoc = C S S -> C S S -> C S S -> Bool
+type CombAssoc = C S S -> C S S -> C S S -> Bool -- unused
+
 
 main :: IO ()
 main = do
