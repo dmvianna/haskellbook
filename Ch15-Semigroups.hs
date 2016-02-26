@@ -1,6 +1,13 @@
 
-import Data.Semigroup
-import Test.QuickCheck
+import Data.Semigroup (Semigroup,
+                       (<>))
+import Test.QuickCheck (arbitrary,
+                        Arbitrary,
+                        coarbitrary,
+                        CoArbitrary,
+                        elements,
+                        Gen,
+                        quickCheck)
 
 -- Semigroup exercises
 -- 1.
@@ -340,11 +347,11 @@ data Validation a b =
   Failure a | Success b
   deriving (Eq, Show)
 
-instance Semigroup (Main.Validation a b) where
-      Main.Failure x <> Main.Success _ = Main.Failure x
-      Main.Success _ <> Main.Failure x = Main.Failure x
-      Main.Failure x <> Main.Failure _ = Main.Failure x
-      Main.Success x <> Main.Success _ = Main.Success x
+instance Semigroup (Validation a b) where
+      Failure x <> Success _ = Failure x
+      Success _ <> Failure x = Failure x
+      Failure x <> Failure _ = Failure x
+      Success x <> Success _ = Success x
 
 -- 12. AccumulateRight
 
@@ -353,18 +360,18 @@ newtype AccumulateRight a b =
   deriving (Eq, Show)
 
 instance Semigroup b => Semigroup (AccumulateRight a b) where
-  AccumulateRight (Main.Failure x) <>
-    AccumulateRight (Main.Success _) =
-      AccumulateRight (Main.Failure x)
-  AccumulateRight (Main.Failure x) <>
-    AccumulateRight (Main.Failure _) =
-      AccumulateRight (Main.Failure x)
-  AccumulateRight (Main.Success _) <>
-    AccumulateRight (Main.Failure x) =
-      AccumulateRight (Main.Failure x)
-  AccumulateRight (Main.Success x) <>
-    AccumulateRight (Main.Success x') =
-      AccumulateRight (Main.Success (x <> x'))
+  AccumulateRight (Failure x) <>
+    AccumulateRight (Success _) =
+      AccumulateRight (Failure x)
+  AccumulateRight (Failure x) <>
+    AccumulateRight (Failure _) =
+      AccumulateRight (Failure x)
+  AccumulateRight (Success _) <>
+    AccumulateRight (Failure x) =
+      AccumulateRight (Failure x)
+  AccumulateRight (Success x) <>
+    AccumulateRight (Success x') =
+      AccumulateRight (Success (x <> x'))
 
 -- 13. AccumulateBoth
 
@@ -374,18 +381,18 @@ newtype AccumulateBoth a b =
 
 instance (Semigroup a, Semigroup b) =>
     Semigroup (AccumulateBoth a b) where
-        AccumulateBoth (Main.Failure x) <>
-          AccumulateBoth (Main.Failure x') =
-             AccumulateBoth (Main.Failure (x <> x'))
-        AccumulateBoth (Main.Success x) <>
-          AccumulateBoth (Main.Success x') =
-            AccumulateBoth (Main.Success (x <> x'))
-        AccumulateBoth (Main.Success _) <>
-          AccumulateBoth (Main.Failure x) =
-            AccumulateBoth (Main.Failure x)
-        AccumulateBoth (Main.Failure x) <>
-          AccumulateBoth (Main.Success _) =
-            AccumulateBoth (Main.Failure x)
+        AccumulateBoth (Failure x) <>
+          AccumulateBoth (Failure x') =
+             AccumulateBoth (Failure (x <> x'))
+        AccumulateBoth (Success x) <>
+          AccumulateBoth (Success x') =
+            AccumulateBoth (Success (x <> x'))
+        AccumulateBoth (Success _) <>
+          AccumulateBoth (Failure x) =
+            AccumulateBoth (Failure x)
+        AccumulateBoth (Failure x) <>
+          AccumulateBoth (Success _) =
+            AccumulateBoth (Failure x)
 
 -- Got it, but I'm not testing that monster.
 
