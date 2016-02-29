@@ -6,7 +6,8 @@ import Test.QuickCheck (arbitrary,
                         CoArbitrary,
                         elements,
                         Gen,
-                        quickCheck)
+                        quickCheck,
+                        sample)
 
 -- Semigroup exercises
 -- 1.
@@ -379,15 +380,35 @@ instance Semigroup b => Semigroup (AccumulateRight a b) where
   AccumulateRight (Failure x) <>
     AccumulateRight (Success _) =
       AccumulateRight (Failure x)
-  AccumulateRight (Failure x) <>
-    AccumulateRight (Failure _) =
+  AccumulateRight (Failure _) <>
+    AccumulateRight (Failure x) =
       AccumulateRight (Failure x)
   AccumulateRight (Success _) <>
     AccumulateRight (Failure x) =
       AccumulateRight (Failure x)
-  AccumulateRight (Success x) <>
-    AccumulateRight (Success x') =
-      AccumulateRight (Success (x <> x'))
+  AccumulateRight (Success _) <>
+    AccumulateRight (Success x) =
+      AccumulateRight (Success x)
+
+testAccR :: (Eq a, Eq b, Semigroup a, Semigroup b) =>
+            AccumulateRight a b -> AccumulateRight a b -> Bool
+testAccR x x' = case (x, x') of
+  (AccumulateRight(Failure a),
+   AccumulateRight(Success _)) -> x <> x' == AccumulateRight(Failure a)
+  (AccumulateRight(Success _),
+   AccumulateRight(Failure a)) -> x <> x' == AccumulateRight(Failure a)
+  (AccumulateRight(Failure _),
+   AccumulateRight(Failure a)) -> x <> x' == AccumulateRight(Failure a)
+  (AccumulateRight(Success _),
+   AccumulateRight(Success a)) -> x <> x' == AccumulateRight(Success a)
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (AccumulateRight a b) where
+  arbitrary = genAccR
+
+genAccR :: (Arbitrary a, Arbitrary b) => Gen (AccumulateRight a b)
+genAccR = do
+  a <- genValidation
+  return $ AccumulateRight a
 
 -- 13. AccumulateBoth
 
@@ -410,9 +431,27 @@ instance (Semigroup a, Semigroup b) =>
           AccumulateBoth (Success _) =
             AccumulateBoth (Failure x)
 
--- Got it, but I'm not testing that monster.
+testAccB :: (Eq a, Eq b, Semigroup a, Semigroup b) =>
+            AccumulateBoth a b -> AccumulateBoth a b -> Bool
+testAccB x x' = case (x, x') of
+  (AccumulateBoth(Failure a),
+   AccumulateBoth(Success _)) -> x <> x' == AccumulateBoth(Failure a)
+  (AccumulateBoth(Success _),
+   AccumulateBoth(Failure a)) -> x <> x' == AccumulateBoth(Failure a)
+  (AccumulateBoth(Failure a),
+   AccumulateBoth(Failure a')) -> x <> x' == AccumulateBoth(Failure (a <> a'))
+  (AccumulateBoth(Success a),
+   AccumulateBoth(Success a')) -> x <> x' == AccumulateBoth(Success (a <> a'))
 
-  
+instance (Arbitrary a, Arbitrary b) => Arbitrary (AccumulateBoth a b) where
+  arbitrary = genAccB
+
+genAccB :: (Arbitrary a, Arbitrary b) => Gen (AccumulateBoth a b)
+genAccB = do
+  a <- genValidation
+  return $ AccumulateBoth a
+
+
 -- main
 
 type S = String
@@ -433,6 +472,10 @@ type C = Combine
 type CombAssoc = C S S -> C S S -> C S S -> Bool -- unused
 type V = Validation
 type ValidAssoc = V S S -> V S S -> V S S -> Bool
+type AR = AccumulateRight
+type ARAssoc = AR S S -> AR S S -> AR S S -> Bool
+type AB = AccumulateBoth
+type ABAssoc = AB S S -> AB S S -> AB S S -> Bool
 
 main :: IO ()
 main = do
@@ -474,4 +517,9 @@ main = do
   putStrLn "\n Validation"
   quickCheck (semigroupAssoc :: ValidAssoc)
   quickCheck (testValidSemi :: V S S -> V S S -> Bool)
-  
+  putStrLn "\n AccumulateRight"
+  quickCheck (semigroupAssoc :: ARAssoc)
+  quickCheck (testAccR :: AR (V S S) (V S S) -> AR (V S S) (V S S) -> Bool)
+  putStrLn "\n AccumulateBoth"
+  quickCheck (semigroupAssoc :: ABAssoc)
+  quickCheck (testAccB :: AB (V S S) (V S S) -> AB (V S S) (V S S) -> Bool)
