@@ -63,6 +63,49 @@ type S = String
 type Id = Identity
 type IdAssoc = Id S -> Id S -> Id S -> Bool 
 
+-- test ID
+
+testIdEq :: Eq a => Id a -> Id a -> Bool
+testIdEq x x' = (\ (Identity a) (Identity a') -> a == a') x x' == (x == x')
+
+-- 3. Two
+
+data Two a b = Two a b deriving Show
+
+-- Two Instances
+
+instance (Semigroup a, Semigroup b) => Semigroup (Two a b) where
+  Two a b <> Two a' b' = Two (a <> a') (b <> b')
+
+instance (Monoid a, Monoid b, Semigroup a, Semigroup b) =>
+    Monoid (Two a b) where
+  mempty = Two mempty mempty
+  mappend = (<>)
+
+instance (Eq a, Eq b) => Eq (Two a b) where
+  Two a b == Two a' b' = (a == a') && (b == b')
+
+instance (Arbitrary a, Monoid a, Semigroup a,
+          Arbitrary b, Monoid b, Semigroup b) =>
+    Arbitrary (Two a b) where
+      arbitrary = genTwo
+
+genTwo :: (Arbitrary a, Arbitrary b) => Gen (Two a b)
+genTwo = do
+  a <- arbitrary
+  b <- arbitrary
+  return $ Two a b
+
+-- test Two
+
+type TwoAssoc = Two S S -> Two S S -> Two S S -> Bool
+
+testTwoEq :: (Eq a, Eq b) => Two a b -> Two a b -> Bool
+testTwoEq x x' = (\ (Two a b) (Two a' b') -> (a == a') && (b == b')) x x' ==
+                 (x == x')
+
+-- main
+
 main :: IO ()
 main = do
   putStrLn "\n Trivial"
@@ -73,3 +116,9 @@ main = do
   quickCheck (semigroupAssoc :: IdAssoc)
   quickCheck (monoidLeftIdentity :: Id S -> Bool)
   quickCheck (monoidRightIdentity :: Id S -> Bool)
+  quickCheck (testIdEq :: Id S -> Id S -> Bool)
+  putStrLn "\n Two"
+  quickCheck (semigroupAssoc :: TwoAssoc)
+  quickCheck (monoidLeftIdentity :: Two S S -> Bool)
+  quickCheck (monoidRightIdentity :: Two S S -> Bool)
+  quickCheck (testTwoEq :: Two S S -> Two S S -> Bool)
