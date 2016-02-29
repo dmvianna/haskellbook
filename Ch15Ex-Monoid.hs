@@ -1,5 +1,5 @@
 
-import Data.Monoid (Monoid, mempty, mappend)
+import Data.Monoid (Monoid, mempty, mappend, Sum(..), getSum)
 import Data.Semigroup (Semigroup, (<>))
 import Test.QuickCheck (Arbitrary,
                         arbitrary,
@@ -216,6 +216,16 @@ testOr x x' = case (x, x') of
 
 type OrAssoc = Or S S -> Or S S -> Or S S -> Bool
 
+-- 7. Combine
+
+newtype Combine a b = Combine { unCombine :: (a -> b) }
+
+instance Semigroup b => Semigroup (Combine a b) where
+  Combine f <> Combine g = Combine (f <> g)
+
+instance (Monoid b, Semigroup b) => Monoid (Combine a b) where
+  mempty = Combine mempty
+  mappend = (<>)
 
 -- main
 
