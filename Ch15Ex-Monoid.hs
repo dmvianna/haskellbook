@@ -227,6 +227,28 @@ instance (Monoid b, Semigroup b) => Monoid (Combine a b) where
   mempty = Combine mempty
   mappend = (<>)
 
+-- 8. Comp
+
+newtype Comp a = Comp (a -> a)
+
+instance Semigroup a => Semigroup (Comp a) where
+  Comp f <> Comp g = Comp (f <> g)
+
+instance (Monoid a, Semigroup a) => Monoid (Comp a) where
+  mempty = Comp mempty
+  mappend = (<>)
+
+-- 9. Mem
+
+newtype Mem s a =
+  Mem {
+    runMem :: s -> (a, s)
+    }
+
+instance Monoid a => Monoid (Mem s a) where
+  mempty = undefined
+  mappend = undefined
+
 -- main
 
 main :: IO ()
