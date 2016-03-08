@@ -91,6 +91,65 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c) =>
 
 -- 5.
 
+data Three' a b = Three' a b b deriving (Eq, Show)
+instance Functor (Three' a) where
+  fmap f (Three' a b c) = Three' a (f b) (f c)
+
+genThree' :: (Arbitrary a, Arbitrary b) =>
+            Gen (Three' a b)
+genThree' = do
+  a <- arbitrary
+  b <- arbitrary
+  c <- arbitrary
+  return $ Three' a b c
+
+instance (Arbitrary a, Arbitrary b) =>
+    Arbitrary (Three' a b) where
+        arbitrary = genThree'
+
+-- 6.
+
+data Four a b c d = Four a b c d deriving (Eq, Show)
+
+instance Functor (Four a b c) where
+  fmap f (Four a b c d) = Four a b c (f d)
+
+instance (Arbitrary a, Arbitrary b,
+          Arbitrary c, Arbitrary d) =>
+    Arbitrary (Four a b c d) where
+        arbitrary = genFour
+
+genFour :: (Arbitrary a, Arbitrary b,
+            Arbitrary c, Arbitrary d) =>
+           Gen (Four a b c d)
+
+genFour = do
+  a <- arbitrary
+  b <- arbitrary
+  c <- arbitrary
+  d <- arbitrary
+  return $ Four a b c d
+
+-- 7.
+
+data Four' a b = Four' a a a b deriving (Eq, Show)
+
+instance Functor (Four' a) where
+  fmap f (Four' a b c d) = Four' a b c (f d)
+
+instance (Arbitrary a, Arbitrary b) =>
+    Arbitrary (Four' a b) where
+      arbitrary = genFour'
+
+genFour' :: (Arbitrary a, Arbitrary b) =>
+            Gen (Four' a b)
+
+genFour' = do
+  a <- arbitrary
+  b <- arbitrary
+  c <- arbitrary
+  d <- arbitrary
+  return $ Four' a b c d
 
 -- main
 
@@ -100,6 +159,9 @@ type IdFC = Identity Int -> IntToInt -> IntToInt -> Bool
 type PairFC = Pair Int -> IntToInt -> IntToInt -> Bool
 type TwoFC = Two Int Int -> IntToInt -> IntToInt -> Bool
 type ThreeFC = Three Int Int Int -> IntToInt -> IntToInt -> Bool
+type ThreeFC' = Three' Int Int -> IntToInt -> IntToInt -> Bool
+type FourFC = Four Char Char Char Int -> IntToInt -> IntToInt -> Bool
+type FourFC' = Four' Char Int -> IntToInt -> IntToInt -> Bool
 
 main :: IO ()
 main = do
@@ -118,3 +180,13 @@ main = do
   putStrLn "\n Three"
   quickCheck (functorIdentity :: Three Int Int Int -> Bool)
   quickCheck (functorCompose' :: ThreeFC)
+  putStrLn "\n Three'"
+  quickCheck (functorIdentity :: Three' Int Int -> Bool)
+  quickCheck (functorCompose' :: ThreeFC')
+  putStrLn "\n Four"
+  quickCheck (functorIdentity :: Four Char Char Char Char -> Bool)
+  quickCheck (functorCompose' :: FourFC)
+  putStrLn "\n Four'"
+  quickCheck (functorIdentity :: Four' Char Int -> Bool)
+  quickCheck (functorCompose' :: FourFC')
+  
