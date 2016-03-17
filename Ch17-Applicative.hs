@@ -2,6 +2,7 @@
 import Data.Monoid
 import Data.Functor ((<$>))
 import Control.Applicative --((<*>))
+import qualified Data.Foldable as F
 
 import Data.List (elemIndex)
 
@@ -49,8 +50,8 @@ x = lookup 3 $ zip xs ys
 y :: Maybe Integer
 y = lookup 2 $ zip xs ys
 
--- summed :: Maybe Integer
--- summed = sum $ (,) x y
+summed :: Maybe Integer
+summed = fmap F.sum $ (,) <$> x <*> y
 
 -- Identity
 
@@ -69,8 +70,8 @@ newtype Constant a b =
   deriving (Eq, Ord, Show)
 
 instance Functor (Constant a) where
-  fmap = undefined
+  fmap _ (Constant a) = Constant a
 
 instance Monoid a => Applicative (Constant a) where
-  pure = undefined
-  (<*>) = undefined
+  pure _ = Constant { getConstant = mempty }
+  a <*> a' = Constant (getConstant a <> getConstant a')
