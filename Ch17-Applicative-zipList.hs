@@ -62,7 +62,12 @@ instance Applicative List where
 -- ZipList Applicative
 
 take' :: Int -> List a -> List a
-take' = undefined
+take' n xs = f n xs Nil
+    where f n' (Cons h t) acc =
+              if n' == 0
+              then acc
+              else f (n' - 1) t (Cons h acc)
+          f _ Nil acc = acc
 
 newtype ZipList' a = ZipList' (List a) deriving (Eq, Show)
 
@@ -79,3 +84,6 @@ instance Functor ZipList' where
 instance Applicative ZipList' where
   pure = undefined
   (<*>) = undefined
+
+-- main :: IO ()
+-- main = quickBatch (applicative ZipList')
