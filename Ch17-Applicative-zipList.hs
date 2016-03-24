@@ -82,8 +82,23 @@ instance Functor ZipList' where
   fmap f (ZipList' xs) = ZipList' $ fmap f xs
 
 instance Applicative ZipList' where
-  pure = undefined
-  (<*>) = undefined
+  pure x = ZipList' (Cons x Nil)
+  _ <*> ZipList' Nil = ZipList' Nil
+  ZipList' Nil <*> _ = ZipList' Nil
+  ZipList' (Cons f fs) <*> xs = undefined
+
+zip' :: List a -> List b -> List (a, b)
+zip' xs ys = case (xs, ys) of
+  (Nil, _) -> Nil
+  (_, Nil) -> Nil
+  (Cons h t, Cons h' t') -> Cons (h, h') (zip' t t')
+
+
+-- instance Applicative List where
+--   pure x = Cons x Nil
+--   _ <*> Nil = Nil
+--   Nil <*> _ = Nil
+--   Cons f fs <*> xs = append (flatMap (fmap f) (Cons xs Nil)) (fs <*> xs)
 
 -- main :: IO ()
--- main = quickBatch (applicative ZipList')
+-- main = quickBatch (applicative $ ZipList' $ Cons 'a' Nil)
