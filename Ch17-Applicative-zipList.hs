@@ -54,8 +54,10 @@ instance Applicative List where
 -- flatMap (fmap (+1)) $ Cons (Cons 4 Nil) (Cons (Cons 5 Nil) Nil)
 -- Cons 5 (Cons 6 Nil)
 
--- let functions = Cons (+1) (Cons (*2) Nil)
--- let values = Cons 1 (Cons 2 Nil)
+-- functions = Cons (+1) (Cons (*2) Nil)
+-- values = Cons 1 (Cons 2 Nil)
+-- zFunctions = ZipList' functions
+-- zValues = ZipList' values
 -- functions <*> values
 -- Cons 2 (Cons 3 (Cons 2 (Cons 4 Nil)))
 
@@ -85,7 +87,8 @@ instance Applicative ZipList' where
   pure x = ZipList' (Cons x Nil)
   _ <*> ZipList' Nil = ZipList' Nil
   ZipList' Nil <*> _ = ZipList' Nil
-  ZipList' (Cons f fs) <*> xs = undefined
+  ZipList' (Cons f fs) <*> ZipList' (Cons x xs) =
+    ZipList' $ Cons (f x) (fs <*> xs)
 
 zip' :: List a -> List b -> List (a, b)
 zip' xs ys = case (xs, ys) of
@@ -93,12 +96,23 @@ zip' xs ys = case (xs, ys) of
   (_, Nil) -> Nil
   (Cons h t, Cons h' t') -> Cons (h, h') (zip' t t')
 
+instance Arbitrary a => Arbitrary (List a) where
+  arbitrary = genList
 
--- instance Applicative List where
---   pure x = Cons x Nil
---   _ <*> Nil = Nil
---   Nil <*> _ = Nil
---   Cons f fs <*> xs = append (flatMap (fmap f) (Cons xs Nil)) (fs <*> xs)
+instance Arbitrary a => Arbitrary (ZipList' a) where
+  arbitrary = genZipList
 
--- main :: IO ()
--- main = quickBatch (applicative $ ZipList' $ Cons 'a' Nil)
+genList :: Arbitrary a => Gen (List a)
+genList = do
+  h <- arbitrary
+  t <- genList
+  frequency [(3, return $ Cons h t),
+             (1, return Nil)]
+
+genZipList :: Arbitrary a => Gen (ZipList' a)
+genZipList = do
+  l <- arbitrary
+  return $ ZipList' l
+
+main :: IO ()
+main = quickBatch (applicative $ ZipList' (Cons (1 :: Int, True, 'a') Nil))
