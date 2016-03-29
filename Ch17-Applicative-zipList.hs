@@ -51,6 +51,13 @@ instance Applicative List where
   Nil <*> _ = Nil
   Cons f fs <*> xs = append (flatMap (fmap f) (Cons xs Nil)) (fs <*> xs)
 
+instance Eq a => EqProp (List a) where
+    xs =-= ys = xs' `eq` ys'
+        where xs' = let l = xs
+                    in take' 3000 l
+              ys' = let l = ys
+                    in take' 3000 l
+
 -- flatMap (fmap (+1)) $ Cons (Cons 4 Nil) (Cons (Cons 5 Nil) Nil)
 -- Cons 5 (Cons 6 Nil)
 
@@ -87,14 +94,16 @@ instance Applicative ZipList' where
   pure x = ZipList' (Cons x Nil)
   _ <*> ZipList' Nil = ZipList' Nil
   ZipList' Nil <*> _ = ZipList' Nil
+  ZipList' (Cons f Nil) <*> ZipList' (Cons x xs) =
+    ZipList' $ Cons (f x) (pure f <*> xs)
   ZipList' (Cons f fs) <*> ZipList' (Cons x xs) =
     ZipList' $ Cons (f x) (fs <*> xs)
 
-zip' :: List a -> List b -> List (a, b)
-zip' xs ys = case (xs, ys) of
-  (Nil, _) -> Nil
-  (_, Nil) -> Nil
-  (Cons h t, Cons h' t') -> Cons (h, h') (zip' t t')
+-- zip' :: List a -> List b -> List (a, b)
+-- zip' xs ys = case (xs, ys) of
+--   (Nil, _) -> Nil
+--   (_, Nil) -> Nil
+--   (Cons h t, Cons h' t') -> Cons (h, h') (zip' t t')
 
 instance Arbitrary a => Arbitrary (List a) where
   arbitrary = genList
@@ -115,4 +124,8 @@ genZipList = do
   return $ ZipList' l
 
 main :: IO ()
-main = quickBatch (applicative $ ZipList' (Cons (1 :: Int, True, 'a') Nil))
+main = do
+  putStrLn "-- applicative ZipList'"
+  quickBatch (applicative $ ZipList' (Cons (1 :: Int, True, 'a') Nil))
+  -- putStrLn "-- applicative List"
+  -- quickBatch (applicative $ Cons (1 :: Int, True, 'a') Nil)
