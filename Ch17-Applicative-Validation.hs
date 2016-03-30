@@ -57,19 +57,21 @@ genValidation = do
 -- Test it
 
 instance (Eq e, Eq a) => EqProp (Validation e a) where
-    Error e =-= Error e' = e `eq` e'
-    Success a =-= Success a' = a `eq` a'
-    x =-= y = x `eq` y
+    (=-=) = eq
 
+instance (Eq a, Eq b) => EqProp (Sum a b) where
+    (=-=) = eq
 
--- main :: IO ()
--- main = do
---   putStrLn "-- applicative Validation"
---   quickBatch (applicative $ undefined :: (Sum Int Int,
---                                           Validation String Int,
---                                           Sum Int String))
+type S = String
 
+main :: IO ()
+main = do
+  putStrLn "-- applicative Validation"
+  quickBatch (applicative (undefined :: Validation S (S, S, S)))
+  putStrLn "-- applicative Sum"
+  quickBatch (applicative (undefined :: Sum S (S, S, S)))
 
+-- This below seems rather useless to me.
 
 -- applyIfBothSecond :: (Sum e) (a -> b)
 --                   -> (Sum e) a
@@ -79,4 +81,3 @@ instance (Eq e, Eq a) => EqProp (Validation e a) where
 --                      (Validation e) (a -> b)
 --                   -> (Validation e) a
 --                   -> (Validation e) b
-
