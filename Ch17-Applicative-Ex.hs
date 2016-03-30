@@ -171,3 +171,12 @@ main = do
   quickBatch (applicative (undefined ::
                               Four' (S, S, S)
                                     (I, I, I)))
+
+-- Combinations
+
+stops, vowels :: String
+stops = "pbtdkg"
+vowels = "aeiou"
+
+combos :: [a] -> [b] -> [c] -> [(a, b, c)]
+combos = liftA3 (,,)
