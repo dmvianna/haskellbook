@@ -150,5 +150,3 @@ doSomething' = do
   b <- g
   c <- h
   zed' a b c
-
--- Either monad
