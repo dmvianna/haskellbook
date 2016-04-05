@@ -4,7 +4,7 @@ import Test.QuickCheck.Checkers
 import Test.QuickCheck.Classes
 import Control.Applicative
 import Data.Monoid
-import Data.Functor ((<$>))
+import Data.Functor
 import Control.Monad (join, (>=>))
 
 
@@ -112,6 +112,34 @@ instance Eq a => EqProp (Identity a) where (=-=) = eq
 
 data List a = Nil | Cons a (List a) deriving (Eq, Show)
 
+instance Functor List where
+  fmap _ Nil = Nil
+  fmap f (Cons h t) = Cons (f h) (fmap f t)
+
+append :: List a -> List a -> List a
+append Nil xs = xs
+append (Cons x xs) ys = Cons x (append xs ys)
+
+instance Applicative List where
+  pure = undefined
+  (<*>) = undefined
+
+instance Monad List where
+  return x = Cons x Nil
+  Nil >>= _ = Nil
+  Cons h t >>= f = append (f h) (t >>= f)
+
+instance Arbitrary a => Arbitrary (List a) where
+  arbitrary = genList
+
+genList :: Arbitrary a => Gen (List a)
+genList = do
+  h <- arbitrary
+  t <- genList
+  frequency [(3, return $ Cons h t),
+             (1, return Nil)]
+
+instance Eq a => EqProp (List a) where (=-=) = eq
 
 -- main
 
@@ -125,3 +153,25 @@ main = do
   quickBatch $ monad (undefined :: PEither I (I, I, I))
   putStr "\n-- Identity"
   quickBatch $ monad (undefined :: Identity (I, I, I))
+  putStr "\n-- List"
+  quickBatch $ monad (undefined :: List (I, I, I))
+
+-- Functions
+
+j :: Monad m => m (m a) -> m a
+j = (=<<) id
+
+l1 :: (Functor m, Monad m) => (a -> b) -> m a -> m b
+l1 = fmap
+
+l2 :: (Applicative m, Monad m) => (a -> b -> c) -> m a -> m b -> m c
+l2 = liftA2
+
+a :: (Applicative m, Monad m) => m a -> m (a -> b) -> m b
+a = flip (<*>)
+
+-- meh :: Monad m => [a] -> (a -> m b) -> m [b]
+-- meh xs f = fmap f xs
+
+flipType :: (Monad m) => [m a] -> m [a]
+flipType = undefined
