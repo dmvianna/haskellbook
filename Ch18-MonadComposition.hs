@@ -170,8 +170,12 @@ l2 = liftA2
 a :: (Applicative m, Monad m) => m a -> m (a -> b) -> m b
 a = flip (<*>)
 
--- meh :: Monad m => [a] -> (a -> m b) -> m [b]
--- meh xs f = fmap f xs
+meh :: (Functor m, Monad m) => [a] -> (a -> m b) -> m [b]
+meh [] _ = return []
+meh (x:xs) f = do
+  x' <- f x
+  fmap ((:) x') (meh xs f)
 
-flipType :: (Monad m) => [m a] -> m [a]
-flipType = undefined
+flipType :: (Functor m, Monad m) => [m a] -> m [a]
+flipType = (flip meh) id
+
