@@ -23,3 +23,13 @@ instance Foldable Optional where
 
 mySum :: (Foldable t, Num a) => t a -> a
 mySum x = getSum $ foldMap Sum x
+
+myProduct :: (Foldable t, Num a) => t a -> a
+myProduct x = getProduct $ foldMap Product x
+
+myElem :: (Foldable t, Eq a) => a -> t a -> Bool
+myElem x xs = getAny $ foldMap (Any . (== x)) xs
+
+-- Typechecks, but doesn't sort yet
+myMinimum :: (Foldable t, Ord a) => t a -> Maybe a
+myMinimum x = getFirst $ foldMap (First . Just) x
