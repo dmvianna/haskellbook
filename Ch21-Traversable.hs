@@ -72,13 +72,41 @@ genId = do
 
 -- Constant
 
+newtype Constant a b = Constant { getConstant :: a }
+    deriving (Show, Eq)
 
+instance Functor (Constant a) where
+  fmap _ (Constant x) = Constant x
+
+instance Monoid a => Applicative (Constant a) where
+  pure _ = Constant { getConstant = mempty }
+  x <*> x' = Constant (getConstant x `mappend` getConstant x')
+
+instance Foldable (Constant a) where
+  foldMap _ _ = mempty
+
+instance Traversable (Constant a) where
+  traverse _ (Constant x) = Constant <$> pure x
+
+instance (Eq a, Eq b) => EqProp (Constant a b) where
+  x =-= x' = getConstant x `eq` getConstant x'
+
+instance Arbitrary a => Arbitrary (Constant a b) where
+  arbitrary = genConst
+
+genConst :: Arbitrary a => Gen (Constant a b)
+genConst = do
+  a <- arbitrary
+  return $ Constant a
 
 --
 
-type TI = Identity
+idTrigger = undefined :: Identity (Int, Int, [Int])
+constTrigger = undefined :: Constant Int (Int, Int, [Int])
 
 main :: IO ()
 main = do
-  let trigger = undefined :: TI (Int, Int, [Int])
-  quickBatch (traversable trigger)
+  putStr "\nIdentity"
+  quickBatch (traversable idTrigger)
+  putStr "\nConstant"
+  quickBatch (traversable constTrigger)
