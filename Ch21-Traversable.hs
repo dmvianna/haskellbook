@@ -99,10 +99,53 @@ genConst = do
   a <- arbitrary
   return $ Constant a
 
+-- Maybe
+
+data Optional a = Nada | Yep a deriving (Eq, Show)
+
+instance Monoid a => Monoid (Optional a) where
+  mempty = Nada
+  Nada `mappend` _ = Nada
+  _ `mappend` Nada = Nada
+  Yep x `mappend` Yep x' = Yep (x `mappend` x')
+
+instance Functor Optional where
+  fmap _ Nada = Nada
+  fmap f (Yep x) = Yep (f x)
+
+instance Applicative Optional where
+  pure = Yep
+  Nada <*> _ = Nada
+  _ <*> Nada = Nada
+  (Yep f) <*> (Yep x) = Yep (f x)
+
+instance Foldable Optional where
+  foldMap f Nada = mempty
+  foldMap f (Yep x) = f x
+
+instance Traversable Optional where
+  traverse _ Nada = pure Nada
+  traverse f (Yep x) = Yep <$> f x
+
+instance Eq a => EqProp (Optional a) where
+  (=-=) = eq
+
+instance Arbitrary a => Arbitrary (Optional a) where
+  arbitrary = frequency [ (1, return Nada)
+                        , (2, genYep) ]
+
+genYep :: Arbitrary a => Gen (Optional a)
+genYep = do
+  x <- arbitrary
+  return $ Yep x
+
+
+
 --
 
 idTrigger = undefined :: Identity (Int, Int, [Int])
 constTrigger = undefined :: Constant Int (Int, Int, [Int])
+opTrigger = undefined :: Optional (Int, Int, [Int])
 
 main :: IO ()
 main = do
@@ -110,3 +153,5 @@ main = do
   quickBatch (traversable idTrigger)
   putStr "\nConstant"
   quickBatch (traversable constTrigger)
+  putStr "\nOptional"
+  quickBatch (traversable opTrigger)
