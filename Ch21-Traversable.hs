@@ -139,13 +139,107 @@ genYep = do
   x <- arbitrary
   return $ Yep x
 
+-- List
 
+data List a = Nil | Cons a (List a) deriving (Eq, Show)
+
+instance Functor List where
+  fmap _ Nil = Nil
+  fmap f (Cons h t) = Cons (f h) (fmap f t)
+
+instance Foldable List where
+  foldMap _ Nil = mempty
+  foldMap f (Cons h t) = f h `mappend` foldMap f t
+
+instance Traversable List where
+  traverse _ Nil = pure Nil
+  traverse f (Cons h t) = Cons <$> f h <*> traverse f t
+
+instance Eq a => EqProp (List a) where (=-=) = eq
+
+instance Arbitrary a => Arbitrary (List a) where
+  arbitrary = genList
+
+genList :: Arbitrary a => Gen (List a)
+genList = do
+  h <- arbitrary
+  t <- genList
+  frequency [ (3, return $ Cons h t)
+            , (1, return Nil) ]
+
+-- Three
+
+data Three a b c = Three a b c deriving (Eq, Show)
+
+instance Functor (Three a b) where
+  fmap f (Three a b c) = Three a b (f c)
+
+instance Foldable (Three a b) where
+  foldMap f (Three _ _ c) = f c
+
+instance Traversable (Three a b) where
+  traverse f (Three a b c) = Three a b <$> f c
+
+instance (Eq a, Eq b, Eq c) => EqProp (Three a b c) where
+  (=-=) = eq
+
+instance (Arbitrary a, Arbitrary b, Arbitrary c) =>
+    Arbitrary (Three a b c) where
+        arbitrary = genThree
+
+genThree :: (Arbitrary a, Arbitrary b, Arbitrary c) =>
+            Gen (Three a b c)
+genThree = do
+  a <- arbitrary
+  b <- arbitrary
+  c <- arbitrary
+  return $ Three a b c
+
+-- Three'
+
+data Three' a b = Three' a b b deriving (Eq, Show)
+
+instance Functor (Three' a) where
+  fmap f (Three' a b b') = Three' a (f b) (f b')
+
+instance Foldable (Three' a) where
+  foldMap f (Three' _ b b') = f b `mappend` f b'
+
+instance Traversable (Three' a) where
+  traverse f (Three' a b b') = Three' a <$> f b <*> f b'
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Three' a b) where
+  arbitrary = genThree'
+
+genThree' :: (Arbitrary a, Arbitrary b) => Gen (Three' a b)
+genThree' = do
+  a <- arbitrary
+  b <- arbitrary
+  b' <- arbitrary
+  return $ Three' a b b'
+
+instance (Eq a, Eq b) => EqProp (Three' a b) where
+  (=-=) = eq
+
+-- S
+
+-- data S n a = S (n a) a deriving (Eq, Show)
+
+-- instance Functor (S n) where
+--   fmap f (S (n a) a) = 
+
+-- instance Traversable n => Traversable (S n) where
+--   traverse = undefined
+  
 
 --
 
 idTrigger = undefined :: Identity (Int, Int, [Int])
 constTrigger = undefined :: Constant Int (Int, Int, [Int])
 opTrigger = undefined :: Optional (Int, Int, [Int])
+listTrigger = undefined :: List (Int, Int, [Int])
+threeTrigger = undefined :: Three Int Int (Int, Int, [Int])
+three'Trigger = undefined :: Three' Int (Int, Int, [Int])
 
 main :: IO ()
 main = do
@@ -155,3 +249,10 @@ main = do
   quickBatch (traversable constTrigger)
   putStr "\nOptional"
   quickBatch (traversable opTrigger)
+  putStr "\nList"
+  quickBatch (traversable listTrigger)
+  putStr "\nThree"
+  quickBatch (traversable threeTrigger)
+  putStr "\nThree'"
+  quickBatch (traversable three'Trigger)
+  
