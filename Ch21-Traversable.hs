@@ -252,6 +252,45 @@ genS = do
   a <- arbitrary
   return $ S (n a) a
 
+-- Tree
+
+data Tree a = Empty
+            | Leaf a
+            | Node (Tree a) a (Tree a)
+              deriving (Eq, Show)
+
+instance Functor Tree where
+  fmap _ Empty = Empty
+  fmap f (Leaf x) = Leaf (f x)
+  fmap f (Node n x n') = Node (fmap f n) (f x) (fmap f n')
+
+instance Foldable Tree where
+  foldMap _ Empty = mempty
+  foldMap f (Leaf x) = f x
+  foldMap f (Node n x n') =
+    foldMap f n `mappend` f x `mappend` foldMap f n'
+
+instance Traversable Tree where
+  traverse _ Empty = pure Empty
+  traverse f (Leaf x) = Leaf <$> f x
+  traverse f (Node n x n') =
+    Node <$> traverse f n <*> f x <*> traverse f n'
+
+instance Eq a => EqProp (Tree a) where
+  (=-=) = eq
+
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = genTree
+
+genTree :: Arbitrary a => Gen (Tree a)
+genTree = do
+  x <- arbitrary
+  n <- genTree
+  n' <- genTree
+  frequency [ (1, return Empty)
+            , (2, return $ Leaf x)
+            , (2, return $ Node n x n') ]
+
 --
 
 idTrigger = undefined :: Identity (Int, Int, [Int])
@@ -261,6 +300,7 @@ listTrigger = undefined :: List (Int, Int, [Int])
 threeTrigger = undefined :: Three Int Int (Int, Int, [Int])
 three'Trigger = undefined :: Three' Int (Int, Int, [Int])
 sTrigger = undefined :: S Maybe (Int, Int, [Int])
+treeTrigger = undefined :: Tree (Int, Int, [Int])
 
 main :: IO ()
 main = do
@@ -278,3 +318,5 @@ main = do
   quickBatch (traversable three'Trigger)
   putStr "\nS"
   quickBatch (traversable sTrigger)
+  putStr "\nTree"
+  quickBatch (traversable treeTrigger)
