@@ -55,4 +55,4 @@ tupled'' = do
   return (a, b)
 
 tupled''' :: [Char] -> ([Char], [Char])
-tupled''' = (,) =<< rev 
+tupled''' xs = fmap rev $ (cap >>= (,)) (xs)
