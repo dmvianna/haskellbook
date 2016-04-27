@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleContexts #-}
 
 import Prelude hiding (Either, Left, Right)
+import Control.Monad (join)
 import Test.QuickCheck
 import Test.QuickCheck.Checkers
 import Test.QuickCheck.Classes
@@ -223,14 +225,32 @@ instance (Eq a, Eq b) => EqProp (Three' a b) where
 
 -- S
 
--- data S n a = S (n a) a deriving (Eq, Show)
+data S n a = S (n a) a deriving (Eq, Show)
 
--- instance Functor (S n) where
---   fmap f (S (n a) a) = 
+instance Functor n => Functor (S n) where
+  fmap f (S n a) = S (fmap f n) (f a)
 
--- instance Traversable n => Traversable (S n) where
---   traverse = undefined
+instance Foldable n => Foldable (S n) where
+  foldMap f (S n a) = foldMap f n `mappend` f a
+
+instance Traversable n => Traversable (S n) where
+  traverse f (S n a) = S <$> traverse f n <*> f a
   
+instance (Eq (n a), Eq a) => EqProp (S n a) where
+  (=-=) = eq
+
+instance (Arbitrary (n a), CoArbitrary (n a),
+          Arbitrary a, CoArbitrary a) =>
+    Arbitrary (S n a) where
+  arbitrary = genS
+
+genS :: (Arbitrary (n a), CoArbitrary (n a),
+         Arbitrary a, CoArbitrary a) =>
+        Gen (S n a)
+genS = do
+  n <- arbitrary
+  a <- arbitrary
+  return $ S (n a) a
 
 --
 
@@ -240,6 +260,7 @@ opTrigger = undefined :: Optional (Int, Int, [Int])
 listTrigger = undefined :: List (Int, Int, [Int])
 threeTrigger = undefined :: Three Int Int (Int, Int, [Int])
 three'Trigger = undefined :: Three' Int (Int, Int, [Int])
+sTrigger = undefined :: S Maybe (Int, Int, [Int])
 
 main :: IO ()
 main = do
@@ -255,4 +276,5 @@ main = do
   quickBatch (traversable threeTrigger)
   putStr "\nThree'"
   quickBatch (traversable three'Trigger)
-  
+  putStr "\nS"
+  quickBatch (traversable sTrigger)
