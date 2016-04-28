@@ -1,5 +1,7 @@
+{-# LANGUAGE InstanceSigs #-}
 
 import Control.Applicative
+import Control.Monad (join)
 import Data.Char
 
 -- Demo
@@ -113,17 +115,65 @@ asks :: (r -> a) -> Reader r a
 asks f = Reader f
 
 instance Functor (Reader a) where
-  fmap f (Reader { runReader = x }) =
-    Reader { runReader = f . x }
+  fmap f (Reader x) =
+    Reader $ f . x
 
 instance Applicative (Reader r) where
   pure a = Reader (\r -> a)
-  Reader { runReader = f } <*>
-    Reader { runReader = g } =
-      Reader { runReader = (\r -> f r (g r)) }
+  Reader f <*> Reader g =
+      Reader (\r -> f r (g r))
+
+instance Monad (Reader r) where
+  return = pure
+
+  (>>=) :: Reader r a
+        -> (a -> Reader r b)
+        -> Reader r b
+  (Reader ra) >>= aRb =
+    join $ Reader $ \r -> aRb (ra r)
 
 getDogR'' :: Reader Person Dog
 getDogR'' = Dog <$> Reader dogName <*> Reader address
 
 -- Monad of functions
 
+foo :: (Functor f, Num a) => f a -> f a
+foo r = fmap (+1) r
+
+bar :: Foldable f => t -> f a -> (t, Int)
+bar r t = (r, length t)
+
+froot :: Num a => [a] -> ([a], Int)
+froot r = (map (+1) r, length r)
+
+barOne :: Foldable t => t a -> (t a, Int)
+barOne r = (r, length r)
+
+barPlus r = (foo r, length r)
+
+frooty :: Num a => [a] -> ([a], Int)
+frooty r = bar (foo r) r
+
+frooty' :: Num a => [a] -> ([a], Int)
+frooty' = \r -> bar (foo r) r
+
+fooBind m k = \r -> k (m r) r
+
+getDogRm :: Person -> Dog
+getDogRm = do
+  name <- dogName
+  addy <- address
+  return $ Dog name addy
+
+-- instance Monad (Reader r) where
+--   return = pure
+
+--   (>>=) :: Reader r a
+--         -> (a -> Reader r b)
+--         -> Reader r b
+--   (Reader ra) >>= aRb =
+--     join $ Reader $ \r -> aRb (ra r)
+
+
+-- getDogRM' :: Reader Person Dog
+-- getDogRM' = Reader $
