@@ -165,15 +165,5 @@ getDogRm = do
   addy <- address
   return $ Dog name addy
 
--- instance Monad (Reader r) where
---   return = pure
-
---   (>>=) :: Reader r a
---         -> (a -> Reader r b)
---         -> Reader r b
---   (Reader ra) >>= aRb =
---     join $ Reader $ \r -> aRb (ra r)
-
-
--- getDogRM' :: Reader Person Dog
--- getDogRM' = Reader $
+getDogRM' :: Reader Person Dog
+getDogRM' = Reader (Dog <$> dogName <*> address)
