@@ -59,6 +59,10 @@ tupled'' = do
 tupled''' :: [Char] -> ([Char], [Char])
 tupled''' xs = fmap rev $ (cap >>= (,)) (xs)
 
+tupledM' :: [Char] -> ([Char], [Char])
+tupledM' = rev <$> cap >>= (,)
+
+
 -- Another exercise
 
 newtype Reader r a = Reader { runReader :: r -> a }
