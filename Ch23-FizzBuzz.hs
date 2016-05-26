@@ -12,6 +12,7 @@ fizzBuzzList :: [Integer] -> [String]
 fizzBuzzList list =
   execState (mapM_ addResult list) []
 
+
 addResult :: Integer -> State [String] ()
 addResult n = do
   xs <- get
