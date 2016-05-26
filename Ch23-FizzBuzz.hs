@@ -19,5 +19,12 @@ addResult n = do
   let result = fizzBuzz n
   put (result : xs)
 
+fizzbuzzFromTo :: Integer -> Integer -> [String]
+fizzbuzzFromTo x y
+    | x == y = fizzBuzzList [x]
+    | x < y && y - x == 1 = fizzBuzzList [y,x]
+    | x < y = fizzBuzzList [y, y - 1 .. x]
+    | otherwise = fizzbuzzFromTo y x
+
 main :: IO ()
-main = mapM_ putStrLn $ reverse $ fizzBuzzList [1..100]
+main = mapM_ putStrLn $ fizzbuzzFromTo 1 100
