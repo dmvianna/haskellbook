@@ -9,8 +9,8 @@ stop :: Parser a
 stop = unexpected "stop"
 
 one = char '1'
--- two = char '2'
--- three = char '3'
+two = char '2'
+three = char '3'
 
 one' = one >> stop
 
@@ -72,3 +72,8 @@ main = do
                      , oneTwoS
                      , oneS
                      , stop ])
+  pNL "char \"1\", \"12\", \"123\""
+  testParse (choice [ one >> two >> three
+                    , one >> two
+                    , one
+                    , stop ])
