@@ -41,3 +41,18 @@ testVirtuous = do
   print $ parseString virtuousFraction mempty shouldWork
   print $ parseString virtuousFraction mempty shouldAlsoWork
 
+-- Intermission: Exercise
+
+returnRational :: Parser Integer
+returnRational = do
+  x <- decimal
+  eof
+  return x
+
+testReturn :: IO ()
+testReturn = do
+  print $ parseString returnRational mempty "a123"
+  print $ parseString returnRational mempty "1a23"
+  print $ parseString returnRational mempty "123a"
+  print $ parseString returnRational mempty "a"
+  print $ parseString returnRational mempty "123"
