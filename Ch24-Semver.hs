@@ -27,9 +27,9 @@ parseStop :: Parser a -> Parser a
 parseStop p = do
   x <- p
   c <- anyChar
-  if c `elem` (".-+" :: String)
-  then return x
-  else fail "Unexpected character"
+  case c of
+    '.' -> return x
+    _ ->  fail "Unexpected character"
 
 parseEOF :: Parser a -> Parser a
 parseEOF p = do
@@ -40,10 +40,11 @@ parseEOF p = do
 parseNOS :: Parser NumberOrString
 parseNOS = (NOSI <$> try (parseStop decimal))
            <|> (NOSI <$> try (parseEOF decimal))
-           <|> (NOSS <$> some (letter <|> digit))
+           <|> (NOSS <$> try (parseStop (some (letter <|> digit))))
+           <|> (NOSS <$> parseEOF (some (letter <|> digit)))
 
 parsePrerelease :: Parser [NumberOrString]
-parsePrerelease = undefined
+parsePrerelease = skipMany (oneOf ".") >> some parseNOS
 
 parseSemVer :: Parser SemVer
 parseSemVer = do
