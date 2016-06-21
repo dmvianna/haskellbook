@@ -23,28 +23,12 @@ data SemVer = SemVer Major Minor Patch Release Metadata
 ver :: String
 ver = "10.0.0-x.7.z.92"
 
-parseStop :: Parser a -> Parser a
-parseStop p = do
-  x <- p
-  c <- anyChar
-  case c of
-    '.' -> return x
-    _ ->  fail "Unexpected character"
-
-parseEOF :: Parser a -> Parser a
-parseEOF p = do
-  x <- p
-  eof
-  return x
-
 parseNOS :: Parser NumberOrString
-parseNOS = (NOSI <$> try (parseStop decimal))
-           <|> (NOSI <$> try (parseEOF decimal))
-           <|> (NOSS <$> try (parseStop (some (letter <|> digit))))
-           <|> (NOSS <$> parseEOF (some (letter <|> digit)))
+parseNOS = (NOSI <$> try (decimal <* notFollowedBy letter))
+           <|> (NOSS <$> some (letter <|> digit))
 
-parsePrerelease :: Parser [NumberOrString]
-parsePrerelease = skipMany (oneOf ".") >> some parseNOS
+parsePrerelease :: Parser NumberOrString
+parsePrerelease = skipMany (oneOf ".") >> parseNOS
 
 parseSemVer :: Parser SemVer
 parseSemVer = do
@@ -54,8 +38,8 @@ parseSemVer = do
   _ <- char '.'
   patch <- decimal
   _ <- char '-'
-  vrelease <- parsePrerelease
+  vrelease <- some parsePrerelease
   _ <- char '+'
-  metadata <- parsePrerelease
+  metadata <- some parsePrerelease
   return $ SemVer major minor patch vrelease metadata
 
