@@ -31,15 +31,9 @@ parsePrerelease :: Parser NumberOrString
 parsePrerelease = skipMany (oneOf ".") >> parseNOS
 
 parseSemVer :: Parser SemVer
-parseSemVer = do
-  major <- decimal
-  _ <- char '.'
-  minor <- decimal
-  _ <- char '.'
-  patch <- decimal
-  _ <- char '-'
-  vrelease <- some parsePrerelease
-  _ <- char '+'
-  metadata <- some parsePrerelease
-  return $ SemVer major minor patch vrelease metadata
-
+parseSemVer = SemVer
+              <$> decimal
+              <*> (char '.' *> decimal)
+              <*> (char '.' *> decimal)
+              <*> (char '-' *> some parsePrerelease <|> mempty)
+              <*> (char '+' *> some parsePrerelease <|> mempty)
