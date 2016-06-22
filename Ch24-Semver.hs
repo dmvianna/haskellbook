@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Semver where
 
@@ -45,6 +45,7 @@ instance Ord NumberOrString where
   (NOSS x) `compare` (NOSS x') = x `compare` x'
 
 instance Ord Release where
+  (Release []) `compare` (Release []) = EQ
   (Release []) `compare` (Release _) = GT
   (Release _) `compare` (Release []) = LT
   (Release x) `compare` (Release x') = x `compare` x'
