@@ -59,7 +59,12 @@ miniLog = [r|
 |]
 
 parseActivity :: Parser String
-parseActivity = manyTill anyChar (try comment)
+parseActivity = try (manyTill anyChar comment)
+                <|> try (manyTill anyChar trailingSpace)
+                <|> many anyChar
+
+trailingSpace :: Parser String
+trailingSpace = string " \n" <|> string "\n"
 
 comment :: Parser String
 comment = string " --" <|> string "--"
