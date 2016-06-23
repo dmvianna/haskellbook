@@ -59,19 +59,13 @@ miniLog = [r|
 |]
 
 parseActivity :: Parser String
-parseActivity = some (anyChar <* notFollowedBy comment)
-
-parseActivity' :: Parser String
-parseActivity' = some (noneOf "\n")
+parseActivity = manyTill anyChar (try comment)
 
 comment :: Parser String
-comment = choice [try (string " --"), string "--"]
+comment = string " --" <|> string "--"
 
 skipComment :: Parser ()
 skipComment = comment >> skipMany (noneOf "\n")
-
-parseActivity'' :: Parser Char
-parseActivity'' = anyChar <* notFollowedBy comment
 
 parseDate :: Parser Date
 parseDate = do
