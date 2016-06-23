@@ -58,37 +58,20 @@ miniLog = [r|
 08:00 Breakfast
 |]
 
-skipWhiteSpace :: Parser ()
-skipWhiteSpace = skipMany (char ' ')
-                 >> skipOptional (char '\n')
-
-parseWhiteSpace :: Parser String
-parseWhiteSpace = do
-  s <- some (char ' ')
-  n <- string "\n"
-  return $ s ++ n
-  
-parseComments :: Parser String
-parseComments = do
-  c <- string "--"
-  xs <- some (noneOf "\n")
-  n <- string "\n"
-  return $ c ++ xs ++ n
-
--- / Skip comments
-skipComments :: Parser ()
-skipComments = skipOptional skipWhiteSpace
-               >> string "--"
-               >> skipMany (noneOf "\n")
-               >> skipOptional skipWhiteSpace
-
 parseActivity :: Parser String
-parseActivity = do
-  x <- some (noneOf "\n")
-       -- <* choice [try parseWhiteSpace, parseComments]
-  -- skipComments
-  -- skipWhiteSpace
-  return x
+parseActivity = some (anyChar <* notFollowedBy comment)
+
+parseActivity' :: Parser String
+parseActivity' = some (noneOf "\n")
+
+comment :: Parser String
+comment = choice [try (string " --"), string "--"]
+
+skipComment :: Parser ()
+skipComment = comment >> skipMany (noneOf "\n")
+
+parseActivity'' :: Parser Char
+parseActivity'' = anyChar <* notFollowedBy comment
 
 parseDate :: Parser Date
 parseDate = do
@@ -111,9 +94,9 @@ parseEntry = do
 
 parseSection :: Parser Section
 parseSection = do
-  _ <- optional skipWhiteSpace
+  whiteSpace
   d <- parseDate
-  skipWhiteSpace
+  whiteSpace
   entries <- some parseEntry
   return $ Section d (M.fromList $ readEntry <$> entries)
 
