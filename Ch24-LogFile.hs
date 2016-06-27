@@ -61,13 +61,21 @@ miniLog = [r|
 |]
 
 parseActivity :: Parser String
-parseActivity = try (manyTill (noneOf "\n") comment)
+parseActivity = do
+  a <- try
+                (manyTill (noneOf "\n") comment)
                 <|> try (manyTill anyChar newline)
                 <|> many anyChar
+
+  skipOptional skipLine
+  return a
 
 comment :: Parser String
 comment = try (someSpace >> string "--")
           <|> string "--"
+
+skipLine :: Parser ()
+skipLine = skipMany (noneOf "\n") >> skipOptional (char '\n') >> return ()
 
 parseDate :: Parser Date
 parseDate = do
