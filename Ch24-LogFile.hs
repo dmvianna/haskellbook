@@ -11,8 +11,8 @@ import Test.Hspec
 import Text.RawString.QQ
 import Text.Trifecta
 
-log :: ByteString
-log = [r|
+logEx :: ByteString
+logEx = [r|
 -- wheee a comment
 
 # 2025-02-05
@@ -63,7 +63,7 @@ miniLog = [r|
 parseActivity :: Parser String
 parseActivity = do
   a <- try
-                (manyTill (noneOf "\n") comment)
+       (manyTill (noneOf "\n") comment)
                 <|> try (manyTill anyChar newline)
                 <|> many anyChar
 
@@ -96,16 +96,26 @@ parseEntry = do
   e <- parseActivity
   return $ Entry (Time (read h) (read m)) e
 
+skipComment :: Parser ()
+skipComment = skipOptional (comment >> skipLine)
+
 parseSection :: Parser Section
 parseSection = do
-  whiteSpace
+  skipMany (noneOf "#")
   d <- parseDate
+  skipComment
   whiteSpace
   entries <- some parseEntry
   return $ Section d (M.fromList $ readEntry <$> entries)
 
 readEntry :: Entry -> (Time, Activity)
 readEntry (Entry t a) = (t, a)
+
+readSection :: Section -> (Date, Map Time Activity)
+readSection (Section d a) = (d, a)
+
+-- parseLog :: Parser (Map Date Section)
+-- parseLog = some (M.fromList $ readSection <$> parseSection)
 
 instance Ord Time where
   Time h m `compare` Time h' m' =
@@ -157,3 +167,13 @@ main = hspec $ do
                  r' `shouldBe` Just (Section (Date 2025 2 5)
                                     (M.fromList [(Time 8 0,"Breakfast")
                                                 ,(Time 8 30,"Shower")]))
+
+         -- describe "Log Parsing" $ do
+         --       it "can parse a full log" $ do
+         --         let m = parseByteString parseLog
+         --                 mempty logEx
+         --             r' = maybeSuccess m
+         --         print m
+                 -- r' `shouldBe` Just (Section (Date 2025 2 5)
+                 --                    (M.fromList [(Time 8 0,"Breakfast")
+                 --                                ,(Time 8 30,"Shower")]))
