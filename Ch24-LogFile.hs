@@ -7,6 +7,7 @@ import Data.ByteString hiding (foldr, count)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Monoid ((<>))
+import Test.Hspec
 import Text.RawString.QQ
 import Text.Trifecta
 
@@ -55,24 +56,18 @@ data Section = Section Date (Map Time Activity) deriving (Eq, Show)
 miniLog :: ByteString
 miniLog = [r|
 # 2025-02-05
-08:00 Breakfast
+08:00 Breakfast -- nice
+08:30 Shower -- the water was freezing!  
 |]
 
 parseActivity :: Parser String
-parseActivity = try (manyTill anyChar comment)
-                <|> try (manyTill anyChar newLine)
+parseActivity = try (manyTill (noneOf "\n") comment)
+                <|> try (manyTill anyChar newline)
                 <|> many anyChar
-
-newLine :: Parser String
-newLine = try (someSpace >> string "\n")
-          <|> string "\n"
 
 comment :: Parser String
 comment = try (someSpace >> string "--")
           <|> string "--"
-
-skipComment :: Parser ()
-skipComment = comment >> skipMany (noneOf "\n")
 
 parseDate :: Parser Date
 parseDate = do
@@ -107,3 +102,50 @@ readEntry (Entry t a) = (t, a)
 instance Ord Time where
   Time h m `compare` Time h' m' =
     compare h h' <> compare m m'
+
+
+maybeSuccess :: Result a -> Maybe a
+maybeSuccess (Success a) = Just a
+maybeSuccess _ = Nothing
+
+main :: IO ()
+main = hspec $ do
+
+         describe "Entry Parsing" $ do
+               it "can parse a simple Entry" $ do
+                 let m = parseByteString parseEntry
+                         mempty "12:30 Lunch"
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe` Just (Entry (Time 12 30) "Lunch")
+
+               it "can parse an Entry with comments -- no space" $ do
+                 let m = parseByteString parseEntry
+                         mempty "12:30 Lunch--felt full"
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe` Just (Entry (Time 12 30) "Lunch")
+
+               it "can parse an Entry with comments -- one space" $ do
+                 let m = parseByteString parseEntry
+                         mempty "12:30 Lunch --felt full"
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe` Just (Entry (Time 12 30) "Lunch")
+
+               it "can parse an Entry with comments -- many spaces" $ do
+                 let m = parseByteString parseEntry
+                         mempty "12:30 Lunch   --felt full\n"
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe` Just (Entry (Time 12 30) "Lunch")
+
+         describe "Section Parsing" $ do
+               it "can parse a simple section" $ do
+                 let m = parseByteString parseSection
+                         mempty miniLog
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe` Just (Section (Date 2025 2 5)
+                                    (M.fromList [(Time 8 0,"Breakfast")
+                                                ,(Time 8 30,"Shower")]))
