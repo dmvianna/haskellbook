@@ -41,11 +41,11 @@ logEx = [r|
 22:00 Sleep
 |]
 
-type Hours = Int
-type Minutes = Int
-type Day = Int
-type Month = Int
-type Year = Int
+type Hours = Integer
+type Minutes = Integer
+type Day = Integer
+type Month = Integer
+type Year = Integer
 type Activity = String
 
 data Date = Date Year Month Day deriving (Eq, Show)
@@ -124,6 +124,34 @@ parseLog = do
 
 -- parseByteString parseLog mempty logEx
 
+
+instance Num Time where
+
+    (Time h m) + (Time h' m') = let sm = m + m'
+                                    h'' = quot sm 60
+                                    m'' = rem sm 60
+                                in Time (h + h' + h'') m''
+
+    (Time h m) - (Time h' m') = let sb = m - m'
+                                    h'' = quot sb 60
+                                    m'' = rem sb 60
+                                in Time (h - h' - h'') m''
+
+    fromInteger x = let m = rem x 60
+                        h = quot x 60
+                    in Time h m
+
+    (Time h m) * (Time h' m') = let x = m' + h' * 60
+                                    mm = m * x
+                                    m'' = rem mm 60
+                                    h'' = (h * x) + quot mm 60
+                                in Time h'' m''
+
+    abs (Time h m) = Time (abs h) (abs m)
+
+    signum (Time h m) = Time (signum h) (signum m)
+    
+
 instance Ord Date where
   Date y m d `compare` Date y' m' d' =
     compare y y' <> compare m m' <> compare d d'
@@ -179,12 +207,34 @@ main = hspec $ do
                                     (M.fromList [(Time 8 0,"Breakfast")
                                                 ,(Time 8 30,"Shower")]))
 
-         -- describe "Log Parsing" $ do
-         --       it "can parse a full log" $ do
-         --         let m = parseByteString parseLog
-         --                 mempty logEx
-         --             r' = maybeSuccess m
-         --         print m
-                 -- r' `shouldBe` Just (Section (Date 2025 2 5)
-                 --                    (M.fromList [(Time 8 0,"Breakfast")
-                 --                                ,(Time 8 30,"Shower")]))
+         describe "Log Parsing" $ do
+               it "can parse a full log" $ do
+                 let m = parseByteString parseLog
+                         mempty logEx
+                     r' = maybeSuccess m
+                 print m
+                 r' `shouldBe`
+                    Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 8 0,"Breakfast"),(Time 11 0,"Exercising in high-grav gym"),(Time 13 0,"Programming"),(Time 17 30,"R&R"),(Time 21 0,"Shower"),(Time 22 0,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 8 0,"Breakfast"),(Time 9 0,"Bumped head, passed out"),(Time 13 37,"Go to medbay"),(Time 13 45,"Commute home for rest"),(Time 21 0,"Dinner"),(Time 22 0,"Sleep")])])
+
+--x = M.fromList [(Date 2012 2 3, M.fromList [(Time 8 0, "breakfast"),(Time 9 30, "rest")])]
+
+         describe "Date operations" $ do
+               it "can add dates" $ do
+                 let m = Time 12 30 + Time 1 30
+                 print m
+                 m `shouldBe` Time 14 0
+
+               it "can subtract dates" $ do
+                 let m = Time 12 30 - Time 1 30
+                 print m
+                 m `shouldBe` Time 11 0
+
+               it "creates fromInteger Date" $ do
+                 let m = 61
+                 print m
+                 m `shouldBe` Time 1 1
+
+               it "Multiplies (kinda)" $ do
+                 let m = Time 1 30 * 2
+                 print m
+                 m `shouldBe` Time 3 0
