@@ -52,6 +52,7 @@ data Date = Date Year Month Day deriving (Eq, Show)
 data Time = Time Hours Minutes deriving (Eq, Show)
 data Entry = Entry Time Activity deriving (Eq, Show)
 data Section = Section Date (Map Time Activity) deriving (Eq, Show)
+type Log = Map Date (Map Time Activity)
 
 miniLog :: ByteString
 miniLog = [r|
@@ -114,8 +115,18 @@ readEntry (Entry t a) = (t, a)
 readSection :: Section -> (Date, Map Time Activity)
 readSection (Section d a) = (d, a)
 
--- parseLog :: Parser (Map Date Section)
--- parseLog = some (M.fromList $ readSection <$> parseSection)
+-- parseByteString (some parseSection) mempty logEx
+
+parseLog :: Parser Log
+parseLog = do
+  s <- some parseSection
+  return $ M.fromList (readSection <$> s)
+
+-- parseByteString parseLog mempty logEx
+
+instance Ord Date where
+  Date y m d `compare` Date y' m' d' =
+    compare y y' <> compare m m' <> compare d d'
 
 instance Ord Time where
   Time h m `compare` Time h' m' =
