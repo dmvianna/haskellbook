@@ -56,16 +56,16 @@ type Log = Map Date (Map Time Activity)
 miniLog :: ByteString
 miniLog = [r|
 # 2025-02-05
-08:00 Breakfast -- nice
-08:30 Shower -- the water was freezing!  
+08:00 Breakfast
+09:00 Sanitizing moisture collector
+11:00 Exercising in high-grav gym
 |]
 
 parseActivity :: Parser String
 parseActivity = do
   a <- try
        (manyTill (noneOf "\n") comment)
-                <|> try (manyTill anyChar newline)
-                <|> many anyChar
+                <|> many (noneOf "\n")
 
   skipOptional skipLine
   return a
@@ -187,7 +187,8 @@ main = hspec $ do
                  print m
                  r' `shouldBe` Just (Section (Date 2025 2 5)
                                     (M.fromList [(Time 480,"Breakfast")
-                                                ,(Time 510,"Shower")]))
+                                                ,(Time 540,"Sanitizing moisture collector")
+                                                ,(Time 660,"Exercising in high-grav gym")]))
 
          describe "Log Parsing" $ do
                it "can parse a full log" $ do
@@ -196,7 +197,7 @@ main = hspec $ do
                      r' = maybeSuccess m
                  print m
                  r' `shouldBe`
-                    Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 480,"Breakfast"),(Time 660,"Exercising in high-grav gym"),(Time 780,"Programming"),(Time 1050,"R&R"),(Time 1260,"Shower"),(Time 1320,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 480,"Breakfast"),(Time 540,"Bumped head, passed out"),(Time 817,"Go to medbay"),(Time 825,"Commute home for rest"),(Time 1260,"Dinner"),(Time 1320,"Sleep")])])
+                    Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 480,"Breakfast"),(Time 540,"Sanitizing moisture collector"),(Time 660,"Exercising in high-grav gym"),(Time 720,"Lunch"),(Time 780,"Programming"),(Time 1020,"Commuting home in rover"),(Time 1050,"R&R"),(Time 1140,"Dinner"),(Time 1260,"Shower"),(Time 1275,"Read"),(Time 1320,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 480,"Breakfast"),(Time 540,"Bumped head, passed out"),(Time 816,"Wake up, headache"),(Time 817,"Go to medbay"),(Time 820,"Patch self up"),(Time 825,"Commute home for rest"),(Time 855,"Read"),(Time 1260,"Dinner"),(Time 1275,"Read"),(Time 1320,"Sleep")])])
 
 --x = M.fromList [(Date 2012 2 3, M.fromList [(Time 480, "breakfast"),(Time 930, "rest")])]
 
