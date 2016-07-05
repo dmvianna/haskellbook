@@ -48,10 +48,9 @@ type Year = Integer
 type Activity = String
 
 newtype Time = Time Integer deriving (Eq, Ord)
-data Date = Date Year Month Day deriving (Eq, Show)
 data Entry = Entry Time Activity deriving (Eq, Show)
-data Section = Section Date (Map Time Activity) deriving (Eq, Show)
-type Log = Map Date (Map Time Activity)
+type Section = Map Time Activity
+--type Log = Section
 
 miniLog :: ByteString
 miniLog = [r|
@@ -77,7 +76,7 @@ comment = try (someSpace >> string "--")
 skipLine :: Parser ()
 skipLine = skipMany (noneOf "\n") >> skipOptional (char '\n') >> return ()
 
-parseDate :: Parser Date
+parseDate :: Parser Time
 parseDate = do
   _ <- string "# "
   year <- count 4 digit
@@ -85,7 +84,10 @@ parseDate = do
   month <- count 2 digit
   _ <- char '-'
   day <- count 2 digit
-  return $ Date (read year) (read month) (read day)
+  let ym = read year * 525600
+      mm = read month * 43800
+      dm = read day * 1440
+  return $ Time (ym + mm + dm)
 
 parseEntry :: Parser Entry
 parseEntry = do
@@ -108,28 +110,37 @@ parseSection = do
   skipComment
   whiteSpace
   entries <- some parseEntry
-  return $ Section d (M.fromList $ readEntry <$> entries)
+  return $ M.fromList $ readEntry d <$> entries
 
-readEntry :: Entry -> (Time, Activity)
-readEntry (Entry t a) = (t, a)
-
-readSection :: Section -> (Date, Map Time Activity)
-readSection (Section d a) = (d, a)
+readEntry :: Time -> Entry -> (Time, Activity)
+readEntry d (Entry t a) = (d + t, a)
 
 -- parseByteString (some parseSection) mempty logEx
 
-parseLog :: Parser Log
-parseLog = do
-  s <- some parseSection
-  return $ M.fromList (readSection <$> s)
+parseLog :: Parser [Section]
+parseLog = some parseSection
 
 -- parseByteString parseLog mempty logEx
 
 instance Show Time where
   show (Time rawmin) = let
-    h = quot rawmin 60
-    m = rem rawmin 60
-    in printf "%02d" h ++ ":" ++ printf "%02d" (abs m)
+    ym = 525600
+    mm = 43800
+    dm = 1440
+    hm = 60
+    y = quot rawmin ym
+    yr = rem rawmin ym
+    mo = quot yr mm
+    mr = rem yr mm
+    d = quot mr dm
+    dr = rem mr dm
+    h = quot dr hm
+    m = rem dr hm
+    in printf "%04d" y ++ "-" ++
+       printf "%02d" mo ++ "-" ++
+       printf "%02d" d ++ " " ++
+       printf "%02d" h ++ ":" ++
+       printf "%02d" (abs m)
 
 instance Num Time where
     (Time m) + (Time m') = Time (m + m')
@@ -139,85 +150,85 @@ instance Num Time where
     abs (Time m) = Time (abs m)
     signum (Time m) = Time (signum m)
 
-instance Ord Date where
-  Date y m d `compare` Date y' m' d' =
-    compare y y' <> compare m m' <> compare d d'
-
 maybeSuccess :: Result a -> Maybe a
 maybeSuccess (Success a) = Just a
 maybeSuccess _ = Nothing
 
-main :: IO ()
-main = hspec $ do
+-- activityTime :: Result Log -> Maybe (Map String Time)
+-- activityTime Fail = Nothing
+-- activityTime Success (fromList (Time t, act):xs)
 
-         describe "Entry Parsing" $ do
-               it "can parse a simple Entry" $ do
-                 let m = parseByteString parseEntry
-                         mempty "12:30 Lunch"
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe` Just (Entry (Time 750) "Lunch")
+-- main :: IO ()
+-- main = hspec $ do
 
-               it "can parse an Entry with comments -- no space" $ do
-                 let m = parseByteString parseEntry
-                         mempty "12:30 Lunch--felt full"
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe` Just (Entry (Time 750) "Lunch")
+--          describe "Entry Parsing" $ do
+--                it "can parse a simple Entry" $ do
+--                  let m = parseByteString parseEntry
+--                          mempty "12:30 Lunch"
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
 
-               it "can parse an Entry with comments -- one space" $ do
-                 let m = parseByteString parseEntry
-                         mempty "12:30 Lunch --felt full"
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe` Just (Entry (Time 750) "Lunch")
+--                it "can parse an Entry with comments -- no space" $ do
+--                  let m = parseByteString parseEntry
+--                          mempty "12:30 Lunch--felt full"
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
 
-               it "can parse an Entry with comments -- many spaces" $ do
-                 let m = parseByteString parseEntry
-                         mempty "12:30 Lunch   --felt full\n"
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe` Just (Entry (Time 750) "Lunch")
+--                it "can parse an Entry with comments -- one space" $ do
+--                  let m = parseByteString parseEntry
+--                          mempty "12:30 Lunch --felt full"
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
 
-         describe "Section Parsing" $ do
-               it "can parse a simple section" $ do
-                 let m = parseByteString parseSection
-                         mempty miniLog
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe` Just (Section (Date 2025 2 5)
-                                    (M.fromList [(Time 480,"Breakfast")
-                                                ,(Time 540,"Sanitizing moisture collector")
-                                                ,(Time 660,"Exercising in high-grav gym")]))
+--                it "can parse an Entry with comments -- many spaces" $ do
+--                  let m = parseByteString parseEntry
+--                          mempty "12:30 Lunch   --felt full\n"
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
 
-         describe "Log Parsing" $ do
-               it "can parse a full log" $ do
-                 let m = parseByteString parseLog
-                         mempty logEx
-                     r' = maybeSuccess m
-                 print m
-                 r' `shouldBe`
-                    Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 480,"Breakfast"),(Time 540,"Sanitizing moisture collector"),(Time 660,"Exercising in high-grav gym"),(Time 720,"Lunch"),(Time 780,"Programming"),(Time 1020,"Commuting home in rover"),(Time 1050,"R&R"),(Time 1140,"Dinner"),(Time 1260,"Shower"),(Time 1275,"Read"),(Time 1320,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 480,"Breakfast"),(Time 540,"Bumped head, passed out"),(Time 816,"Wake up, headache"),(Time 817,"Go to medbay"),(Time 820,"Patch self up"),(Time 825,"Commute home for rest"),(Time 855,"Read"),(Time 1260,"Dinner"),(Time 1275,"Read"),(Time 1320,"Sleep")])])
+--          describe "Section Parsing" $ do
+--                it "can parse a simple section" $ do
+--                  let m = parseByteString parseSection
+--                          mempty miniLog
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe` Just (Section (Date 2025 2 5)
+--                                     (M.fromList [(Time 480,"Breakfast")
+--                                                 ,(Time 540,"Sanitizing moisture collector")
+--                                                 ,(Time 660,"Exercising in high-grav gym")]))
 
---x = M.fromList [(Date 2012 2 3, M.fromList [(Time 480, "breakfast"),(Time 930, "rest")])]
+--          describe "Log Parsing" $ do
+--                it "can parse a full log" $ do
+--                  let m = parseByteString parseLog
+--                          mempty logEx
+--                      r' = maybeSuccess m
+--                  print m
+--                  r' `shouldBe`
+--                     Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 480,"Breakfast"),(Time 540,"Sanitizing moisture collector"),(Time 660,"Exercising in high-grav gym"),(Time 720,"Lunch"),(Time 780,"Programming"),(Time 1020,"Commuting home in rover"),(Time 1050,"R&R"),(Time 1140,"Dinner"),(Time 1260,"Shower"),(Time 1275,"Read"),(Time 1320,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 480,"Breakfast"),(Time 540,"Bumped head, passed out"),(Time 816,"Wake up, headache"),(Time 817,"Go to medbay"),(Time 820,"Patch self up"),(Time 825,"Commute home for rest"),(Time 855,"Read"),(Time 1260,"Dinner"),(Time 1275,"Read"),(Time 1320,"Sleep")])])
 
-         describe "Date operations" $ do
-               it "can add dates" $ do
-                 let m = Time 30 + Time 130
-                 print m
-                 m `shouldBe` Time 160
+-- --x = M.fromList [(Date 2012 2 3, M.fromList [(Time 480, "breakfast"),(Time 930, "rest")])]
 
-               it "can subtract dates" $ do
-                 let m = Time 30 - Time 130
-                 print m
-                 m `shouldBe` Time (-100)
+--          describe "Date operations" $ do
+--                it "can add dates" $ do
+--                  let m = Time 30 + Time 130
+--                  print m
+--                  m `shouldBe` Time 160
 
-               it "creates fromInteger Date" $ do
-                 let m = 61
-                 print m
-                 m `shouldBe` Time 61
+--                it "can subtract dates" $ do
+--                  let m = Time 30 - Time 130
+--                  print m
+--                  m `shouldBe` Time (-100)
 
-               it "Multiplies (kinda)" $ do
-                 let m = Time 30 * 2
-                 print m
-                 m `shouldBe` Time 60
+--                it "creates fromInteger Date" $ do
+--                  let m = 61
+--                  print m
+--                  m `shouldBe` Time 61
+
+--                it "Multiplies (kinda)" $ do
+--                  let m = Time 30 * 2
+--                  print m
+--                  m `shouldBe` Time 60
