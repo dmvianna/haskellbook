@@ -3,9 +3,11 @@
 module LogFile where
 
 import Control.Applicative
-import Data.ByteString hiding (foldr, count)
+import Data.ByteString hiding (foldr, foldl, count, last, map, head)
 import Data.Map (Map)
+import qualified Data.Map.Lazy as L
 import qualified Data.Map as M
+import Data.Maybe
 import Data.Monoid ((<>))
 import Test.Hspec
 import Text.Printf (printf)
@@ -50,7 +52,6 @@ type Activity = String
 newtype Time = Time Integer deriving (Eq, Ord)
 data Entry = Entry Time Activity deriving (Eq, Show)
 type Section = Map Time Activity
---type Log = Section
 
 miniLog :: ByteString
 miniLog = [r|
@@ -154,9 +155,23 @@ maybeSuccess :: Result a -> Maybe a
 maybeSuccess (Success a) = Just a
 maybeSuccess _ = Nothing
 
--- activityTime :: Result Log -> Maybe (Map String Time)
--- activityTime Fail = Nothing
--- activityTime Success (fromList (Time t, act):xs)
+activityTime :: Result Section -> Maybe [(Time, Activity)]
+activityTime (Success ms) =
+  let xs = M.toList ms
+      endTime :: Time -> Map Time Activity -> Time
+      endTime k ms' =
+        case M.lookupGT k ms' of
+          Nothing -> k
+          Just (t', _) -> t'
+      timeSpent :: Map Time Activity
+                -> (Time, Activity)
+                -> (Time, Activity)
+      timeSpent ms' (t, a) = (endTime t ms' - t, a)
+  in Just $ map (timeSpent ms) xs
+
+activityTime _ = Nothing
+
+-- activityTime $ parseByteString parseSection mempty miniLog
 
 -- main :: IO ()
 -- main = hspec $ do
