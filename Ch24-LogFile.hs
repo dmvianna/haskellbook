@@ -3,7 +3,7 @@
 module LogFile where
 
 import Control.Applicative
-import Data.ByteString hiding (foldr, foldl, count, last, map, head)
+import Data.ByteString hiding (foldr, foldl, count, last, map, head, concat)
 import Data.Map (Map)
 import qualified Data.Map.Lazy as L
 import qualified Data.Map as M
@@ -118,8 +118,10 @@ readEntry d (Entry t a) = (d + t, a)
 
 -- parseByteString (some parseSection) mempty logEx
 
-parseLog :: Parser [Section]
-parseLog = some parseSection
+parseLog :: Parser Section
+parseLog = do
+  xs <- some (M.toList <$> parseSection)
+  return $ M.fromList $ concat xs
 
 -- parseByteString parseLog mempty logEx
 
@@ -155,7 +157,7 @@ maybeSuccess :: Result a -> Maybe a
 maybeSuccess (Success a) = Just a
 maybeSuccess _ = Nothing
 
-activityTime :: Result Section -> Maybe [(Time, Activity)]
+activityTime :: Result Section -> Maybe [(Activity, Time)]
 activityTime (Success ms) =
   let xs = M.toList ms
       endTime :: Time -> Map Time Activity -> Time
@@ -165,11 +167,17 @@ activityTime (Success ms) =
           Just (t', _) -> t'
       timeSpent :: Map Time Activity
                 -> (Time, Activity)
-                -> (Time, Activity)
-      timeSpent ms' (t, a) = (endTime t ms' - t, a)
+                -> (Activity, Time)
+      timeSpent ms' (t, a) = (a, endTime t ms' - t)
   in Just $ map (timeSpent ms) xs
 
 activityTime _ = Nothing
+
+activitySum :: Map Activity Time
+activitySum = M.fromListWith (+)
+              $ fromJust
+              $ activityTime
+              $ parseByteString parseLog mempty logEx
 
 -- activityTime $ parseByteString parseSection mempty miniLog
 
