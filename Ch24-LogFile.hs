@@ -3,18 +3,20 @@
 module LogFile where
 
 import Control.Applicative
-import Data.ByteString hiding (foldr, foldl, count, last, map, head, concat)
+import qualified Data.ByteString as B
+import Data.List (genericLength)
 import Data.Map (Map)
 import qualified Data.Map.Lazy as L
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid ((<>))
+import qualified Data.Set as S
 import Test.Hspec
 import Text.Printf (printf)
 import Text.RawString.QQ
 import Text.Trifecta
 
-logEx :: ByteString
+logEx :: B.ByteString
 logEx = [r|
 -- wheee a comment
 
@@ -53,7 +55,7 @@ newtype Time = Time Integer deriving (Eq, Ord)
 data Entry = Entry Time Activity deriving (Eq, Show)
 type Section = Map Time Activity
 
-miniLog :: ByteString
+miniLog :: B.ByteString
 miniLog = [r|
 # 2025-02-05
 08:00 Breakfast
@@ -173,6 +175,9 @@ activityTime (Success ms) =
 
 activityTime _ = Nothing
 
+parsedLog :: Result Section
+parsedLog = parseByteString parseLog mempty logEx
+
 activitySum :: Map Activity Time
 activitySum = M.fromListWith (+)
               $ fromJust
@@ -180,6 +185,25 @@ activitySum = M.fromListWith (+)
               $ parseByteString parseLog mempty logEx
 
 -- activityTime $ parseByteString parseSection mempty miniLog
+
+-- two passes, suck it. I'm a n00b with deadlines.
+extractDates :: Result Section -> Maybe [String]
+extractDates (Success ms) =
+  let xs = M.toList ms
+  in Just $ map (\(t, _) -> take 10 (show t)) xs
+extractDates _ = Nothing
+
+countDays :: Maybe [String] -> Integer
+countDays (Just xs) =
+  let unique = S.toList . S.fromList
+  in genericLength $ unique xs
+countDays Nothing = 0
+
+-- countDays $ extractDates parsedLog
+
+-- Now just sum all activity times and divide by number of days
+-- I really should drop sleep as an activity. Sleep should be
+-- just the end time of the last activity.
 
 -- main :: IO ()
 -- main = hspec $ do
