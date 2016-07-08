@@ -159,51 +159,57 @@ maybeSuccess :: Result a -> Maybe a
 maybeSuccess (Success a) = Just a
 maybeSuccess _ = Nothing
 
-activityTime :: Result Section -> Maybe [(Activity, Time)]
-activityTime (Success ms) =
-  let xs = M.toList ms
-      endTime :: Time -> Map Time Activity -> Time
-      endTime k ms' =
-        case M.lookupGT k ms' of
-          Nothing -> k
-          Just (t', _) -> t'
-      timeSpent :: Map Time Activity
-                -> (Time, Activity)
-                -> (Activity, Time)
-      timeSpent ms' (t, a) = (a, endTime t ms' - t)
-  in Just $ map (timeSpent ms) xs
+withinDay :: (Activity, Time) -> Bool
+withinDay (_, t) = t < Time 1440 && t > Time 0
 
-activityTime _ = Nothing
+activityTime :: Result Section -> [(Activity, Time)]
+activityTime (Success ms) =
+    let xs = M.toList ms
+        endTime :: Time -> Map Time Activity -> Time
+        endTime k ms' =
+            case M.lookupGT k ms' of
+              Nothing -> k
+              Just (t', _) -> t'
+        timeSpent :: Map Time Activity
+                  -> (Time, Activity)
+                  -> (Activity, Time)
+        timeSpent ms' (t, a) = (a, endTime t ms' - t)
+    in filter withinDay $ map (timeSpent ms) xs
+activityTime _ = []
 
 parsedLog :: Result Section
 parsedLog = parseByteString parseLog mempty logEx
 
 activitySum :: Map Activity Time
 activitySum = M.fromListWith (+)
-              $ fromJust
               $ activityTime
               $ parseByteString parseLog mempty logEx
 
 -- activityTime $ parseByteString parseSection mempty miniLog
 
 -- two passes, suck it. I'm a n00b with deadlines.
-extractDates :: Result Section -> Maybe [String]
+extractDates :: Result Section -> [String]
 extractDates (Success ms) =
   let xs = M.toList ms
-  in Just $ map (\(t, _) -> take 10 (show t)) xs
-extractDates _ = Nothing
+  in map (\(t, _) -> take 10 (show t)) xs
+extractDates _ = []
 
-countDays :: Maybe [String] -> Integer
-countDays (Just xs) =
+countDays :: [String] -> Integer
+countDays xs =
   let unique = S.toList . S.fromList
   in genericLength $ unique xs
-countDays Nothing = 0
 
 -- countDays $ extractDates parsedLog
 
 -- Now just sum all activity times and divide by number of days
 -- I really should drop sleep as an activity. Sleep should be
 -- just the end time of the last activity.
+
+-- avgActTimePerDay :: Map Activity Time
+-- avgActTimePerDay parsedLog = do
+--   days <- countDays $ extractDates parsedLog
+  
+
 
 -- main :: IO ()
 -- main = hspec $ do
