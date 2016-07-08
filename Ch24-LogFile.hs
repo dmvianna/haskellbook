@@ -3,20 +3,16 @@
 module LogFile where
 
 import Control.Applicative
-import qualified Data.ByteString as B
+import Data.ByteString (ByteString)
 import Data.List (genericLength)
 import Data.Map (Map)
-import qualified Data.Map.Lazy as L
 import qualified Data.Map as M
-import Data.Maybe
-import Data.Monoid ((<>))
 import qualified Data.Set as S
-import Test.Hspec
 import Text.Printf (printf)
 import Text.RawString.QQ
 import Text.Trifecta
 
-logEx :: B.ByteString
+logEx :: ByteString
 logEx = [r|
 -- wheee a comment
 
@@ -55,7 +51,7 @@ newtype Time = Time Integer deriving (Eq, Ord)
 data Entry = Entry Time Activity deriving (Eq, Show)
 type Section = Map Time Activity
 
-miniLog :: B.ByteString
+miniLog :: ByteString
 miniLog = [r|
 # 2025-02-05
 08:00 Breakfast
@@ -155,9 +151,17 @@ instance Num Time where
     abs (Time m) = Time (abs m)
     signum (Time m) = Time (signum m)
 
+instance Fractional Time where
+  fromRational m = Time (floor m)
+  Time m / Time m' = fromRational (fromInteger m / fromInteger m')
+
 maybeSuccess :: Result a -> Maybe a
 maybeSuccess (Success a) = Just a
 maybeSuccess _ = Nothing
+
+-- Now just sum all activity times and divide by number of days
+-- I really should drop sleep as an activity. Sleep should be
+-- just the end time of the last activity.
 
 withinDay :: (Activity, Time) -> Bool
 withinDay (_, t) = t < Time 1440 && t > Time 0
@@ -201,87 +205,8 @@ countDays xs =
 
 -- countDays $ extractDates parsedLog
 
--- Now just sum all activity times and divide by number of days
--- I really should drop sleep as an activity. Sleep should be
--- just the end time of the last activity.
-
--- avgActTimePerDay :: Map Activity Time
--- avgActTimePerDay parsedLog = do
---   days <- countDays $ extractDates parsedLog
-  
-
-
--- main :: IO ()
--- main = hspec $ do
-
---          describe "Entry Parsing" $ do
---                it "can parse a simple Entry" $ do
---                  let m = parseByteString parseEntry
---                          mempty "12:30 Lunch"
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
-
---                it "can parse an Entry with comments -- no space" $ do
---                  let m = parseByteString parseEntry
---                          mempty "12:30 Lunch--felt full"
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
-
---                it "can parse an Entry with comments -- one space" $ do
---                  let m = parseByteString parseEntry
---                          mempty "12:30 Lunch --felt full"
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
-
---                it "can parse an Entry with comments -- many spaces" $ do
---                  let m = parseByteString parseEntry
---                          mempty "12:30 Lunch   --felt full\n"
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe` Just (Entry (Time 750) "Lunch")
-
---          describe "Section Parsing" $ do
---                it "can parse a simple section" $ do
---                  let m = parseByteString parseSection
---                          mempty miniLog
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe` Just (Section (Date 2025 2 5)
---                                     (M.fromList [(Time 480,"Breakfast")
---                                                 ,(Time 540,"Sanitizing moisture collector")
---                                                 ,(Time 660,"Exercising in high-grav gym")]))
-
---          describe "Log Parsing" $ do
---                it "can parse a full log" $ do
---                  let m = parseByteString parseLog
---                          mempty logEx
---                      r' = maybeSuccess m
---                  print m
---                  r' `shouldBe`
---                     Just (M.fromList [(Date 2025 2 5, M.fromList [(Time 480,"Breakfast"),(Time 540,"Sanitizing moisture collector"),(Time 660,"Exercising in high-grav gym"),(Time 720,"Lunch"),(Time 780,"Programming"),(Time 1020,"Commuting home in rover"),(Time 1050,"R&R"),(Time 1140,"Dinner"),(Time 1260,"Shower"),(Time 1275,"Read"),(Time 1320,"Sleep")]),(Date 2025 2 7, M.fromList [(Time 480,"Breakfast"),(Time 540,"Bumped head, passed out"),(Time 816,"Wake up, headache"),(Time 817,"Go to medbay"),(Time 820,"Patch self up"),(Time 825,"Commute home for rest"),(Time 855,"Read"),(Time 1260,"Dinner"),(Time 1275,"Read"),(Time 1320,"Sleep")])])
-
--- --x = M.fromList [(Date 2012 2 3, M.fromList [(Time 480, "breakfast"),(Time 930, "rest")])]
-
---          describe "Date operations" $ do
---                it "can add dates" $ do
---                  let m = Time 30 + Time 130
---                  print m
---                  m `shouldBe` Time 160
-
---                it "can subtract dates" $ do
---                  let m = Time 30 - Time 130
---                  print m
---                  m `shouldBe` Time (-100)
-
---                it "creates fromInteger Date" $ do
---                  let m = 61
---                  print m
---                  m `shouldBe` Time 61
-
---                it "Multiplies (kinda)" $ do
---                  let m = Time 30 * 2
---                  print m
---                  m `shouldBe` Time 60
+avgActTimePerDay :: Result Section -> Map Activity Time
+avgActTimePerDay pLog =
+  let days = countDays $ extractDates pLog
+      sumTime = M.fromListWith (+) $ activityTime pLog
+  in (/ fromInteger days) <$> sumTime -- division, not lambda!
