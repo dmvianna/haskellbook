@@ -70,7 +70,7 @@ parseActivity = do
 
 comment :: Parser String
 comment = try (someSpace >> string "--")
-          <|> string "--"
+  <|> string "--"
 
 skipLine :: Parser ()
 skipLine = skipMany (noneOf "\n") >> skipOptional (char '\n') >> return ()
