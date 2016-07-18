@@ -29,7 +29,7 @@ spewPart (r,bs,p) =
 initState :: Pos -> Integer -> (Rem, [Bit], Pos)
 initState p n = (n, [], p)
 
-parseIPv4 :: Parser [Bit]
+parseIPv4 :: Parser IPAddress
 parseIPv4 = do
   n <- decimal
   _ <- char '.'
@@ -39,7 +39,7 @@ parseIPv4 = do
   _ <- char '.'
   h <- decimal
   let xs = concat $ spewPart <$> initState 8 <$> [n,n',sn,h]
-  return xs
+  return $ IPAddress (fromInteger $ bitToInteger (0, xs))
 
 spewInteger :: (Integer, [Bit]) -> (Integer, [Bit])
 spewInteger (s, xs) =
@@ -62,10 +62,8 @@ main = hspec $ do
           it ("can parse " ++ ip1) $ do
             -- Nonexhaustive, I know
             let (Success x) = parseString parseIPv4 mempty ip1
-                r = bitToInteger (0, x)
-            IPAddress (fromInteger r) `shouldBe` IPAddress 2886794753
+            x `shouldBe` IPAddress 2886794753
     
           it ("can parse " ++ ip2) $ do
             let (Success x) = parseString parseIPv4 mempty ip2
-                r = bitToInteger (0, x)
-            IPAddress (fromInteger r) `shouldBe` IPAddress 3430416399
+            x `shouldBe` IPAddress 3430416399

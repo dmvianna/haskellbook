@@ -7,17 +7,20 @@ import Data.Word
 import Numeric
 import Test.Hspec
 import Text.Trifecta
-import IPv4
+import IPv4 hiding (main)
 
 data IPAddress6 =
   IPAddress6 Word64 Word64
   deriving (Eq, Ord)
 
 instance Show IPAddress6 where
-  show (IPAddress6 q r) =
-    show $ (toInteger q)
-    * (toInteger (maxBound :: Word))
-    + (toInteger r)
+  show = show <$> ip6ToInteger
+
+ip6ToInteger :: IPAddress6 -> Integer
+ip6ToInteger (IPAddress6 q r) =
+  (toInteger q)
+  * (toInteger (maxBound :: Word))
+  + (toInteger r)
 
 hex :: [Char]
 hex = ['0'..'9'] ++ ['A'..'F'] ++ ['a'..'f']
@@ -62,11 +65,11 @@ main = hspec $ do
     it ("can parse " ++ ip1) $ do
       -- Nonexhaustive, I know
       let (Success x) = parseString parseIPv6 mempty ip1
-          r = show x
-      r `shouldBe` "338288524927261089654163772891438416681"
+          r = ip6ToInteger x
+      r `shouldBe` 338288524927261089654163772891438416681
 
     it ("can parse " ++ ip2) $ do
       let (Success x) = parseString parseIPv6 mempty ip2
-          r = show x
-      r `shouldBe` "281474112159759"
+          r = ip6ToInteger x
+      r `shouldBe` 281474112159759
 
