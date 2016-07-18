@@ -1,5 +1,5 @@
 
-module Ipv4 where
+module IPv4 where
 
 import Data.Word
 import Test.Hspec
@@ -47,7 +47,7 @@ spewInteger (s, xs) =
       t = 2 ^ l
   in (s + head xs * t, tail xs)
 
-bitToInteger :: (Integer, [Bit]) -> Word32
+bitToInteger :: (Integer, [Bit]) -> Integer
 bitToInteger (i, xs) =
   if null xs
   then fromInteger i
@@ -56,17 +56,16 @@ bitToInteger (i, xs) =
 main :: IO ()
 main = hspec $ do
 
-  describe "Test some IP values" $ do
-    let ip1 = "172.16.254.1"
-        ip2 = "204.120.0.15"
-    it ("can parse " ++ ip1) $ do
-      -- Nonexhaustive, I know
-      let (Success x) = parseString parseIPv4 mempty ip1
-          r = bitToInteger (0, x)
-      IPAddress r `shouldBe` IPAddress 2886794753
-
-    it ("can parse " ++ ip2) $ do
-      let (Success x) = parseString parseIPv4 mempty ip2
-          r = bitToInteger (0, x)
-      IPAddress r `shouldBe` IPAddress 3430416399
-
+    describe "Test some IP values" $ do
+          let ip1 = "172.16.254.1"
+              ip2 = "204.120.0.15"
+          it ("can parse " ++ ip1) $ do
+            -- Nonexhaustive, I know
+            let (Success x) = parseString parseIPv4 mempty ip1
+                r = bitToInteger (0, x)
+            IPAddress (fromInteger r) `shouldBe` IPAddress 2886794753
+    
+          it ("can parse " ++ ip2) $ do
+            let (Success x) = parseString parseIPv4 mempty ip2
+                r = bitToInteger (0, x)
+            IPAddress (fromInteger r) `shouldBe` IPAddress 3430416399
