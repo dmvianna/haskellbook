@@ -13,21 +13,29 @@ type Rem = Integer
 type Bit = Integer
 type Pos = Integer
 
-spewBit :: (Rem, [Bit], Pos) -> (Rem, [Bit], Pos)
-spewBit (i, xs, p) =
-  let p' = p - 1
-      b = 2 ^ p'
-      (q, r) = i `quotRem` b
-  in (r, q:xs, p')
+data ParseState =
+  ParseState {
+    remainder :: Rem
+  , bits :: [Bit]
+  , posit :: Pos
+  } deriving (Show)
 
-spewPart :: (Rem, [Bit], Pos) -> [Bit]
-spewPart (r,bs,p) =
-  if p == 0
-  then reverse bs
-  else spewPart $ spewBit (r,bs,p)
+spewBit :: ParseState -> ParseState
+spewBit ps =
+  let p' = (posit ps) - 1
+      b = 2 ^ p' :: Pos
+      (q, r) = (remainder ps) `quotRem` b
+      xs = q : (bits ps)
+  in ParseState {remainder = r, bits = xs, posit = p'}
 
-initState :: Pos -> Integer -> (Rem, [Bit], Pos)
-initState p n = (n, [], p)
+spewPart :: ParseState -> [Bit]
+spewPart ps =
+  if posit ps == 0
+  then reverse $ bits ps
+  else spewPart $ spewBit ps
+
+initState :: Pos -> Integer -> ParseState
+initState p n = ParseState {remainder = n, bits = mempty, posit = p}
 
 parseIPv4 :: Parser IPAddress
 parseIPv4 = do
