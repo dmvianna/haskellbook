@@ -34,7 +34,7 @@ spewPart ps =
   then reverse $ bits ps
   else spewPart $ spewBit ps
 
-initState :: Pos -> Integer -> ParseState
+initState :: Pos -> Pos -> ParseState
 initState p n = ParseState {remainder = n, bits = mempty, posit = p}
 
 parseIPv4 :: Parser IPAddress
@@ -46,20 +46,20 @@ parseIPv4 = do
   sn <- decimal
   _ <- char '.'
   h <- decimal
-  let xs = concat $ spewPart <$> initState 8 <$> [n,n',sn,h]
-  return $ IPAddress (fromInteger $ bitToInteger (0, xs))
+  let xs = concat $ spewPart <$> initState 8 <$> fromIntegral <$> [n,n',sn,h]
+  return $ IPAddress (fromIntegral $ bitToIntegral (0, xs))
 
-spewInteger :: (Integer, [Bit]) -> (Integer, [Bit])
-spewInteger (s, xs) =
+spewIntegral :: (Pos, [Bit]) -> (Pos, [Bit])
+spewIntegral (s, xs) =
   let l = length xs - 1
       t = 2 ^ l
   in (s + head xs * t, tail xs)
 
-bitToInteger :: (Integer, [Bit]) -> Integer
-bitToInteger (i, xs) =
+bitToIntegral :: (Pos, [Bit]) -> Pos
+bitToIntegral (i, xs) =
   if null xs
-  then fromInteger i
-  else bitToInteger $ spewInteger (i, xs)
+  then i
+  else bitToIntegral $ spewIntegral (i, xs)
 
 main :: IO ()
 main = hspec $ do

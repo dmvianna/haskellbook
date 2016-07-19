@@ -45,16 +45,15 @@ fillAbbrev xs = -- I'm sure this can be shortened
 parseIPv6 :: Parser IPAddress6
 parseIPv6 = do
   xs <- parseBlocks
-  let x :: Integer
-      xs' = concat $ spewPart
+  let xs' = concat $ spewPart
           <$> initState 16
           <$> fst
           <$> (catMaybes $ listToMaybe
                <$> readHex
                <$> fillAbbrev xs)
-      x = bitToInteger (0, xs')
-      ip = quotRem x (toInteger (maxBound :: Word))
-  return $ IPAddress6 (fromInteger $ fst ip) (fromInteger $ snd ip)
+      x = bitToIntegral (0, xs')
+      ip = quotRem x (fromIntegral (maxBound :: Word))
+  return $ IPAddress6 (fromIntegral $ fst ip) (fromIntegral $ snd ip)
 
 main :: IO ()
 main = hspec $ do
