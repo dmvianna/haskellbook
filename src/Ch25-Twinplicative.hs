@@ -20,7 +20,7 @@ instance (Applicative f, Applicative g) =>
                  -> Compose f g a
                  -> Compose f g b
            (Compose f) <*> (Compose a) =
-             Compose $ (fmap (id . (<*>)) f) <*> a
+             Compose $ ((<*>) <$> f) <*> a
 
 instance (Foldable f, Foldable g) =>
          Foldable (Compose f g) where
