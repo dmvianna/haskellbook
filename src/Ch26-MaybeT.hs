@@ -15,7 +15,7 @@ instance (Functor m) => Functor (MaybeT m) where
 
 instance (Applicative m) => Applicative (MaybeT m) where
   pure x = MaybeT (pure (pure x))
-  (MaybeT fab) <*> (MaybeT mma) =
+  MaybeT fab <*> MaybeT mma =
     MaybeT $ (<*>) <$> fab <*> mma
 
 instance (Monad m) => Monad (MaybeT m) where
@@ -24,7 +24,7 @@ instance (Monad m) => Monad (MaybeT m) where
   (>>=) :: MaybeT m a
         -> (a -> MaybeT m b)
         -> MaybeT m b
-  (MaybeT ma) >>= f =
+  MaybeT ma >>= f =
     MaybeT $ do
     v <- ma
     case v of
@@ -40,7 +40,7 @@ instance Functor m => Functor (EitherT e m) where
 
 instance Applicative m => Applicative (EitherT e m) where
   pure x = EitherT (pure (pure x))
-  (EitherT fab) <*> (EitherT mma) =
+  EitherT fab <*> EitherT mma =
     EitherT $ (<*>) <$> fab <*> mma
 
 instance Monad m => Monad (EitherT e m) where
@@ -49,7 +49,7 @@ instance Monad m => Monad (EitherT e m) where
   (>>=) :: EitherT e m a
         -> (a -> EitherT e m b)
         -> EitherT e m b
-  (EitherT ma) >>= f =
+  EitherT ma >>= f =
     EitherT $ do
     v <- ma
     case v of
