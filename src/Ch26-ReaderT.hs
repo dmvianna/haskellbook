@@ -35,5 +35,5 @@ instance (Functor m) => Functor (StateT s m) where
        -> StateT s m b
   fmap f (StateT sma) = StateT $
     \s -> let r = sma s
-          in bimap f (snd . fst) (runStateT r)
+          in first f <$> r
 
