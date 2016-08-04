@@ -3,6 +3,7 @@
 module ReaderT where
 
 import Data.Bifunctor
+import Data.Biapplicative
 
 newtype ReaderT r m a =
   ReaderT { runReaderT :: r -> m a }
@@ -37,3 +38,24 @@ instance (Functor m) => Functor (StateT s m) where
     \s -> let r = sma s
           in first f <$> r
 
+instance (Applicative m) => Applicative (StateT s m) where
+  pure a = StateT $ \s -> pure (a, s)
+  
+  (<*>) :: StateT s m (a -> b)
+        -> StateT s m a
+        -> StateT s m b
+
+  StateT fma <*> StateT ma = StateT $
+    \s -> let -- r :: m (a, s)
+              r = ma s
+              -- fr :: m (a -> b, s)
+              fr = fma s
+              f' = \(f, _) (a, s') -> (f a, s')
+          in f' <$> fr <*> r
+
+instance (Monad m) => Monad (StateT s m) where
+  return = pure
+  (>>=) :: StateT s m a
+        -> (a -> StateT s m b)
+        -> StateT s m b
+  StateT smb >>= f = undefined
