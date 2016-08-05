@@ -16,9 +16,9 @@ instance Applicative (Moi s) where
   (<*>) :: Moi s (a -> b)
         -> Moi s a
         -> Moi s b
-  (Moi f) <*> (Moi g) = Moi $ \s -> let (a, b) = g s
-                                        (fab, _) = f s
-                                    in (fab a, b)
+  (Moi f) <*> (Moi g) = Moi $ \s -> let (fab, s') = f s
+                                        (a, s'') = g s'
+                                    in (fab a, s'')
 
 instance Monad (Moi s) where
   return = pure
