@@ -1,5 +1,11 @@
 {-# LANGUAGE InstanceSigs #-}
 
+module Moi where
+
+import Test.QuickCheck
+import Test.QuickCheck.Checkers
+import Test.QuickCheck.Classes
+
 newtype Moi s a = Moi { runMoi :: s -> (a, s) }
 
 instance Functor (Moi s) where
@@ -28,3 +34,23 @@ instance Monad (Moi s) where
   (Moi f) >>= g = Moi $ \s -> let (a, s') = f s
                                   (Moi sb) = g a
                               in sb s'
+
+
+genMoi :: (Arbitrary s, Arbitrary a, CoArbitrary s, CoArbitrary a)
+          => Gen (s -> (a, s))
+genMoi = arbitrary
+
+instance (Arbitrary s, Arbitrary a, CoArbitrary s, CoArbitrary a)
+         => Arbitrary (Moi s a) where
+  arbitrary = do
+    f <- genMoi
+    return $ Moi f
+
+
+
+main :: IO ()
+main = do
+  let trigger = undefined :: Moi (Int -> (String, Int)) (Int, Int, Int)
+  -- quickBatch $ functor trigger
+  -- quickBatch $ applicative trigger
+  quickBatch $ monad trigger

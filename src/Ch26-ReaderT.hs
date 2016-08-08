@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module ReaderT where
 
@@ -53,9 +54,10 @@ instance (Applicative m) => Applicative (StateT s m) where
               f' = \(f, _) (a, s') -> (f a, s')
           in f' <$> fr <*> r
 
-instance (Monad m) => Monad (StateT s m) where
-  return = pure
-  (>>=) :: StateT s m a
-        -> (a -> StateT s m b)
-        -> StateT s m b
-  StateT smb >>= f = undefined
+-- instance (Monad m) => Monad (StateT s m) where
+--   return = pure
+--   (>>=) :: StateT s m a
+--         -> (a -> StateT s m b)
+--         -> StateT s m b
+  -- StateT smb >>= f = StateT $
+  -- \s -> let asmb = f s
