@@ -1,12 +1,14 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Moi where
 
+import GHC.Generics
 import Test.QuickCheck
 import Test.QuickCheck.Checkers
 import Test.QuickCheck.Classes
 
-newtype Moi s a = Moi { runMoi :: s -> (a, s) }
+newtype Moi s a = Moi { runMoi :: s -> (a, s) } deriving (Show, Generic)
 
 instance Functor (Moi s) where
   fmap :: (a -> b)
@@ -46,11 +48,13 @@ instance (Arbitrary s, Arbitrary a, CoArbitrary s, CoArbitrary a)
     f <- genMoi
     return $ Moi f
 
+instance (Eq a, Eq s) => EqProp (Moi s a) where
+  (=-=) = eq
 
 
 main :: IO ()
 main = do
-  let trigger = undefined :: Moi (Int -> (String, Int)) (Int, Int, Int)
-  -- quickBatch $ functor trigger
-  -- quickBatch $ applicative trigger
+  let trigger = undefined :: Moi (Int -> (String, Int)) (Int, Int, [Int])
+  quickBatch $ functor trigger
+  quickBatch $ applicative trigger
   quickBatch $ monad trigger
