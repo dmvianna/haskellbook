@@ -60,10 +60,8 @@ instance (Monad m) => Monad (StateT s m) where
         -> (a -> StateT s m b)
         -> StateT s m b
 
-  StateT ma >>= f = undefined
-
-
-  -- (State f) >>= g = State $ \s -> let (a, s') = f s
-  --                                     ms = runState $ g a
-  --                                 in ms s'
-
+  StateT ma >>= f = StateT $
+    \s -> do
+      (a, s') <- ma s
+      (b, s'') <- (runStateT $ f a) s
+      return (b, s'')
