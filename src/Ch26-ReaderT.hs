@@ -4,7 +4,7 @@
 module ReaderT where
 
 import Data.Bifunctor
-import Data.Biapplicative
+
 
 newtype ReaderT r m a =
   ReaderT { runReaderT :: r -> m a }
@@ -52,7 +52,6 @@ instance Monad m => Applicative (StateT s m) where
       (a, s'') <- ma s'
       return (f a, s'')
 
-
 instance (Monad m) => Monad (StateT s m) where
   return = pure
   
@@ -63,5 +62,4 @@ instance (Monad m) => Monad (StateT s m) where
   StateT ma >>= f = StateT $
     \s -> do
       (a, s') <- ma s
-      (b, s'') <- (runStateT $ f a) s
-      return (b, s'')
+      (runStateT $ f a) s'
