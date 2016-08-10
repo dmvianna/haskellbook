@@ -34,15 +34,3 @@ instance Monad (Moi s) where
   (Moi f) >>= g = Moi $ \s -> let (a, s') = f s
                                   (Moi sb) = g a
                               in sb s'
-
-
-genMoi :: (Arbitrary s, Arbitrary a, CoArbitrary s, CoArbitrary a)
-          => Gen (s -> (a, s))
-genMoi = arbitrary
-
-main :: IO ()
-main = do
-  let trigger = undefined :: (Bool, Int, [Int])
-  -- quickBatch $ functor trigger
-  -- quickBatch $ applicative trigger
-  quickBatch $ monad (pure trigger :: Moi String (Bool, Int, [Int]))

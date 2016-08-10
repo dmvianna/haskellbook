@@ -31,9 +31,9 @@ instance Applicative (State s) where
   (<*>) :: State s (a -> b)
         -> State s a
         -> State s b
-  (State f) <*> (State g) = State $ \s -> let (a, b) = g s
-                                              (fab, _) = f s
-                                          in (fab a, b)
+  (State f) <*> (State g) = State $ \s -> let (fab, s') = f s
+                                              (a, s'') = g s'
+                                          in (fab a, s'')
 
 instance Monad (State s) where
   return = pure
