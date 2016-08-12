@@ -24,6 +24,7 @@ library
                      , containers >= 0.5.6.2
                      , hspec
                      , raw-strings-qq
+                     , scotty
                      , text >= 1.2.2.1
                      , transformers >= 0.4.2.0
                      , trifecta
