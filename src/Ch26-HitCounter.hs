@@ -3,11 +3,12 @@
 
 module Main where
 
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import Data.IORef
 import qualified Data.Map as M
-import Data.Maybe (fromMaybe)
+--import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as TL
 import System.Environment (getArgs)
@@ -43,9 +44,14 @@ bumpBoomp k m =
 app :: Scotty ()
 app =
   get "/:key" $ do
+    config <- lift (reader id)
     unprefixed <- param "key"
-    let key' = mappend prefix unprefixed
-    newInteger <- (bumpBoomp <$> key') <$> counts
+    let key' = mappend (prefix config) unprefixed
+    newInteger <- liftIO $ do
+      countMap <- readIORef (counts config)
+      let (newMap, count) = bumpBoomp key' countMap
+      writeIORef (counts config) newMap
+      return count
     html $ mconcat [ "<h1>Success! Count was: "
                    , TL.pack $ show newInteger
                    , "</h1>"
@@ -58,5 +64,3 @@ main = do
   let config = Config counter (TL.pack prefixArg)
       runR = \r -> runReaderT r config
   scottyT 3000 runR app
-
-
