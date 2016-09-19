@@ -141,10 +141,7 @@ tick :: (Num s, MonadState s m) => m ()
 tick = do st <- get
           put (st + 1)
 
--- eval4 :: (MonadError [Char] m
---          , MonadReader (Map.Map Name Value) m
---          , MonadState Int m)
---          => Exp -> Eval4 Value
+eval4 :: Exp -> Eval4 Value
 eval4 (Lit i) = do tick
                    return $ IntVal i
 eval4 (Var n) = do tick
@@ -170,4 +167,4 @@ eval4 (App e1 e2) = do tick
                            local (const (Map.insert n val2 env')) (eval4 body)
                          _ -> throwError "type error in application"
 
--- runEval4 Map.empty (eval4 (exampleExp))
+-- runEval4 Map.empty 0 (eval4 (exampleExp))
