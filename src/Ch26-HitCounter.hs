@@ -8,7 +8,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import Data.IORef
 import qualified Data.Map as M
---import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as TL
 import System.Environment (getArgs)
@@ -35,23 +35,20 @@ type Handler = ActionT Text (ReaderT Config IO)
 bumpBoomp :: Text
           -> M.Map Text Integer
           -> (M.Map Text Integer, Integer)
-bumpBoomp k m =
-  case M.lookup k m of
-    Nothing -> (M.insert k 1 m, 1)
-    Just c -> let c' = 1 + c
-              in (M.insert k c' m, c')
+bumpBoomp k m = (M.insert k bump m, bump)
+  where bump = (fromMaybe 0 (M.lookup k m)) + 1
 
 app :: Scotty ()
 app =
   get "/:key" $ do
-    config <- lift (reader id)
     unprefixed <- param "key"
+    config <- lift ask
     let key' = mappend (prefix config) unprefixed
-    newInteger <- liftIO $ do
-      countMap <- readIORef (counts config)
-      let (newMap, count) = bumpBoomp key' countMap
-      writeIORef (counts config) newMap
-      return count
+        ref = counts config
+        map' = readIORef ref
+    (newMap, newInteger) <- liftIO (bumpBoomp key' <$> map')
+    liftIO $ writeIORef ref newMap
+
     html $ mconcat [ "<h1>Success! Count was: "
                    , TL.pack $ show newInteger
                    , "</h1>"
@@ -62,5 +59,5 @@ main = do
   [prefixArg] <- getArgs
   counter <- newIORef M.empty
   let config = Config counter (TL.pack prefixArg)
-      runR = \r -> runReaderT r config
+      runR r = runReaderT r config
   scottyT 3000 runR app
