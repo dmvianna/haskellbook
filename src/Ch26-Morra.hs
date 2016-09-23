@@ -25,15 +25,11 @@ parseInput ch = do
     '2' -> Valid 2
     _ -> Invalid
     
-
-main :: IO ()
-main = do
-  hSetBuffering stdout NoBuffering
-  putStrLn "P is player"
-  putStrLn "C is computer"
-  putStrLn "Player is odds, computer is evens."
+gameLoop :: IO ()
+gameLoop = do
   putStr "P: "
-  input <- getChar
+  input <- getChar -- player guess
+  _ <- getChar -- really, Haskell? XD
   cpGuess <- randomRIO (1, 2) :: IO Int -- computer guess
   putStrLn ("C: " ++ show cpGuess)
   case parseInput input of
@@ -41,6 +37,14 @@ main = do
     Invalid -> putStrLn "Type 1, 2 or Q for quit"
     Valid n ->
       case odd $ cpGuess + n of
-        True -> putStrLn "P wins"
-        False -> putStrLn "C wins"
-  main
+        True -> putStrLn "- P wins"
+        False -> putStrLn "- C wins"
+  gameLoop
+
+main :: IO ()
+main = do
+  hSetBuffering stdout NoBuffering
+  putStrLn "P is player"
+  putStrLn "C is computer"
+  putStrLn "Player is odds, computer is evens."
+  gameLoop
