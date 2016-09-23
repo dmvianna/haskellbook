@@ -2,13 +2,18 @@
 
 module Morra where
 
-import Control.Monad.IO.Class
-import Control.Monad.Trans.State
-import Data.IORef
+-- import Control.Monad.IO.Class
+-- import Control.Monad.Trans.State
+-- import Control.Monad.Trans.Except
+-- import Data.IORef
 import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as TL
+-- import qualified Data.Text.Lazy as TL
 import System.IO
 import System.Random
+
+
+-- game :: Char -> Text
+-- game c = 
 
 main :: IO ()
 main = do
@@ -18,8 +23,8 @@ main = do
   putStrLn "Player is odds, computer is evens."
   putStr "P: "
   guess <- getLine
-  let cpGuess = 1 :: Int
-      cpShow = show cpGuess
+  cpGuess <- randomRIO (1, 2) :: IO Int
+  let  cpShow = show cpGuess
   putStrLn ("C: " ++ cpShow)
   case odd $ cpGuess + read guess of
     True -> putStrLn "P wins"
