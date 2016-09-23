@@ -8,6 +8,7 @@ module Morra where
 -- import Data.IORef
 -- import Data.Text.Lazy (Text)
 -- import qualified Data.Text.Lazy as TL
+import System.Exit
 import System.IO
 import System.Random
 -- import Text.Parser.Char
@@ -36,11 +37,10 @@ main = do
   cpGuess <- randomRIO (1, 2) :: IO Int -- computer guess
   putStrLn ("C: " ++ show cpGuess)
   case parseInput input of
-    Quit -> putStrLn "Quitting..."
-    Invalid ->
-      putStrLn "Type 1, 2 or Q for quit"
+    Quit -> putStrLn "Quitting..." >> exitSuccess
+    Invalid -> putStrLn "Type 1, 2 or Q for quit"
     Valid n ->
       case odd $ cpGuess + n of
         True -> putStrLn "P wins"
         False -> putStrLn "C wins"
-
+  main
