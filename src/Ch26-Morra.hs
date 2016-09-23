@@ -1,30 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 module Morra where
 
--- import Control.Monad.IO.Class
--- import Control.Monad.Trans.State
--- import Control.Monad.Trans.Except
--- import Data.IORef
--- import Data.Text.Lazy (Text)
--- import qualified Data.Text.Lazy as TL
 import System.Exit
 import System.IO
 import System.Random
--- import Text.Parser.Char
--- import Text.Trifecta
 
 data Command a = Valid a | Quit | Invalid
 
 parseInput :: Char -> Command Int
-parseInput ch = do
-  case ch of
-    'Q' -> Quit
-    'q' -> Quit
-    '1' -> Valid 1
-    '2' -> Valid 2
-    _ -> Invalid
-    
+parseInput ch
+  | ch `elem` "Qq" = Quit
+  | ch `elem` "12" = Valid $ read [ch]
+  | otherwise = Invalid
+
 gameLoop :: IO ()
 gameLoop = do
   putStr "P: "
