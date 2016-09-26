@@ -17,11 +17,13 @@ type AIScore = Int
 type PersonScore = Int
 type Score = (AIScore, PersonScore)
 type Turn = (AIGuess, PersonGuess)
-data Mode = P2P | AI2P
+data Mode = AI2P | P2P
+data GameState = GameState { score :: Score
+                 , turns :: [Turn]
+                 }
 data Game = Game {
-  score :: IORef Score
+  gameState :: IORef GameState
   , mode :: Mode
-  , turns :: [Turn]
   }
 
 updateScore :: Turn -> Score -> Score
@@ -49,10 +51,18 @@ parseInput ch
   | ch `elem` "12" = Valid $ read [ch]
   | otherwise = Invalid
 
+parseMode :: Char -> Either String Mode
+parseMode ch
+  | ch `elem` "Pp" = Right P2P
+  | ch `elem` "Cc" = Right AI2P
+  | otherwise = Left $ "Key pressed: " ++ [ch]
+
 gameRoutine :: Game -> IO ()
-gameRoutine config = do
-  let ref = score config
-  score' <- readIORef ref
+gameRoutine (Game ref AI2P) = do
+  st <- readIORef ref
+  let score' = score st
+      turns' = turns st
+
   putStr "P: " -- prompt person to play
   input <- getChar -- person guess
   _ <- getChar -- consuming newline, so it doesn't come back later
@@ -70,8 +80,7 @@ gameRoutine config = do
       exitSuccess
     Valid pGuess -> do
       let turn = (aiGuess, pGuess) :: Turn
-          -- turns' = turn : (turns config)
-      writeIORef ref (updateScore turn score')
+      writeIORef ref $ GameState (updateScore turn score') (turn:turns')
       putStrLn $ turnWinner turn
 
 app :: ReaderT Game IO ()
@@ -83,10 +92,16 @@ app = do
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  putStrLn "P is player"
-  putStrLn "C is computer"
-  putStrLn "Player is odds, computer is evens."
-  newScore <- newIORef (0,0)
-  let config = Game newScore AI2P []
-      run r = runReaderT r config
-  run app
+  putStrLn "*********Set game mode: *********"
+  putStrLn "* P for Person to Person        *"
+  putStrLn "* C for Person vs AI (Computer) *"
+  putStrLn "******any other key to quit******"
+  m <- getChar
+  _ <- getChar
+  case parseMode m of
+    Left e -> putStrLn e >> exitSuccess
+    Right m' -> do
+      newGame <- newIORef $ GameState (0,0) []
+      let config = Game newGame m'
+          run r = runReaderT r config
+      run app
