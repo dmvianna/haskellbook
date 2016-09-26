@@ -17,8 +17,10 @@ type AIScore = Int
 type PersonScore = Int
 type Score = (AIScore, PersonScore)
 type Turn = (AIGuess, PersonGuess)
+data Mode = P2P | AI2P
 data Game = Game {
   score :: IORef Score
+  , mode :: Mode
   , turns :: [Turn]
   }
 
@@ -85,6 +87,6 @@ main = do
   putStrLn "C is computer"
   putStrLn "Player is odds, computer is evens."
   newScore <- newIORef (0,0)
-  let config = Game newScore []
+  let config = Game newScore AI2P []
       run r = runReaderT r config
   run app
