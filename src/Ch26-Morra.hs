@@ -11,12 +11,12 @@ import System.Random
 
 data Command a = Valid a | Quit | Invalid
 
-type ComputerGuess = Int
+type AIGuess = Int
 type PersonGuess = Int
-type ComputerScore = Int
+type AIScore = Int
 type PersonScore = Int
-type Score = (ComputerScore, PersonScore)
-type Turn = (ComputerGuess, PersonGuess)
+type Score = (AIScore, PersonScore)
+type Turn = (AIGuess, PersonGuess)
 data Game = Game {
   score :: IORef Score
   , turns :: [Turn]
@@ -28,12 +28,18 @@ updateScore (cg, pg) =
   then first (+1)
   else second (+1)
 
-winner :: Score -> String
-winner s =
+gameWinner :: Score -> String
+gameWinner s =
   case uncurry compare s of
     GT -> "Beaten by the AI!"
     EQ -> "It is a draw!"
     LT -> "Way to go, human!"
+
+turnWinner :: Turn -> String
+turnWinner (c, p) =
+  if odd $ c + p
+  then "- P wins"
+  else "- C wins"
 
 parseInput :: Char -> Command Int
 parseInput ch
@@ -43,32 +49,28 @@ parseInput ch
 
 gameRoutine :: Game -> IO ()
 gameRoutine config = do
-  putStr "P: "
-  input <- getChar -- player guess
-  _ <- getChar -- really, Haskell? XD
-  cpGuess <- randomRIO (1, 2) :: IO ComputerGuess -- computer guess
-  putStrLn ("C: " ++ show cpGuess)
+  let ref = score config
+  score' <- readIORef ref
+  putStr "P: " -- prompt person to play
+  input <- getChar -- person guess
+  _ <- getChar -- consuming newline, so it doesn't come back later
+  aiGuess <- randomRIO (1, 2) :: IO AIGuess -- AI guess
+  putStrLn ("C: " ++ show aiGuess) -- reveal AI guess
   case parseInput input of
+    Invalid -> putStrLn "Type 1, 2 or Q for quit"
     Quit -> do
-      let ref = score config
-      score' <- readIORef ref
       putStrLn $ concat [ "Final score -- C: "
                         , show $ fst score'
                         , " P: "
                         , show $ snd score']
-      putStrLn $ winner score'
+      putStrLn $ gameWinner score'
       putStrLn "Quitting..."
       exitSuccess
-    Invalid -> putStrLn "Type 1, 2 or Q for quit"
     Valid pGuess -> do
-      let turn = (cpGuess, pGuess) :: Turn
-          ref = score config
+      let turn = (aiGuess, pGuess) :: Turn
           -- turns' = turn : (turns config)
-      score' <- readIORef ref
       writeIORef ref (updateScore turn score')
-      if odd $ cpGuess + pGuess
-      then putStrLn "- P wins"
-      else putStrLn "- C wins"
+      putStrLn $ turnWinner turn
 
 app :: ReaderT Game IO ()
 app = do
