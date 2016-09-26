@@ -28,6 +28,13 @@ updateScore (cg, pg) =
   then first (+1)
   else second (+1)
 
+winner :: Score -> String
+winner s =
+  case uncurry compare s of
+    GT -> "Beaten by the AI!"
+    EQ -> "It is a draw!"
+    LT -> "Way to go, human!"
+
 parseInput :: Char -> Command Int
 parseInput ch
   | ch `elem` "Qq" = Quit
@@ -49,7 +56,7 @@ gameRoutine config = do
                         , show $ fst score'
                         , " P: "
                         , show $ snd score']
-
+      putStrLn $ winner score'
       putStrLn "Quitting..."
       exitSuccess
     Invalid -> putStrLn "Type 1, 2 or Q for quit"
@@ -63,11 +70,11 @@ gameRoutine config = do
       then putStrLn "- P wins"
       else putStrLn "- C wins"
 
-gameScore :: ReaderT Game IO ()
-gameScore = do
+app :: ReaderT Game IO ()
+app = do
   config <- ask
   liftIO $ gameRoutine config
-  gameScore
+  app
 
 main :: IO ()
 main = do
@@ -77,5 +84,5 @@ main = do
   putStrLn "Player is odds, computer is evens."
   newScore <- newIORef (0,0)
   let config = Game newScore []
-      game r = runReaderT r config
-  game gameScore
+      run r = runReaderT r config
+  run app
