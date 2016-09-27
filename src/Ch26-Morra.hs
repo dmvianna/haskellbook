@@ -9,6 +9,7 @@ import System.Exit
 import System.IO
 import System.Random
 
+
 data Command a = Valid a | Invalid | Quit
 
 type PersonGuess = Int
@@ -70,6 +71,13 @@ quit (p1, p2) (s1, s2) = do
   putStrLn "Quitting..."
   exitSuccess
 
+p2p :: Name -> IO (Command PersonGuess)
+p2p p = do
+  putStr $ p ++ ": "
+  input <- getChar
+  _ <- getChar
+  return $ parseInput input
+
 gameRoutine :: Game -> IO ()
 gameRoutine (Game ref m) = do
   st <- readIORef ref
@@ -77,23 +85,21 @@ gameRoutine (Game ref m) = do
       turns' = turns st
   case m of
     AI2P -> do
-      let p1 = "C" :: Name
-          p2 = "P" :: Name
-          quit' = quit (p1, p2) score'
-      putStr $ p2 ++ ": " -- prompt person to play
-      input <- getChar -- person guess
-      _ <- getChar -- consuming newline, so it doesn't come back later
-      aiGuess <- randomRIO (1, 2) :: IO PersonGuess -- AI guess
-      putStrLn (p1 ++ ": " ++ show aiGuess) -- reveal AI guess
-      case parseInput input of
+      let players = ("C", "P") :: Names
+          quit' = quit players score'
+      pg <- p2p $ snd players
+      case pg of
+        Quit -> quit'
         Invalid -> invalid
-        Quit -> quit'  
-        Valid pGuess -> do
-          let turn = (aiGuess, pGuess) :: Turn
+        Valid personGuess -> do
+          aiGuess <- randomRIO (1, 2) :: IO PersonGuess -- AI guess
+          putStrLn (fst players ++ ": " ++ show aiGuess) -- reveal AI guess
+          let turn = (aiGuess, personGuess) :: Turn
           writeIORef ref $ GameState (updateScore turn score') (turn:turns')
-          putStrLn $ turnWinner (p1, p2) turn
+          putStrLn $ turnWinner players turn
+          gameRoutine (Game ref AI2P)
     P2P -> do
-      let players = ("P1", "P2") :: (Name, Name)
+      let players = ("P1", "P2") :: Names
           quit' = quit players score'
       g1 <- p2p $ fst players
       g2 <- p2p $ snd players
@@ -109,13 +115,6 @@ gameRoutine (Game ref m) = do
               writeIORef ref $ GameState (updateScore turn score') (turn:turns')
               putStrLn $ turnWinner players turn
               gameRoutine (Game ref P2P)
-
-p2p :: Name -> IO (Command PersonGuess)
-p2p p = do
-  putStr $ p ++ ": "
-  input <- getChar
-  _ <- getChar
-  return $ parseInput input
 
 app :: ReaderT Game IO ()
 app = do
