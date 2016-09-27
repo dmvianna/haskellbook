@@ -9,14 +9,14 @@ import System.Exit
 import System.IO
 import System.Random
 
-data Command a = Valid a | Quit | Invalid
+data Command a = Valid a | Invalid | Quit
 
-type AIGuess = Int
 type PersonGuess = Int
-type AIScore = Int
 type PersonScore = Int
-type Score = (AIScore, PersonScore)
-type Turn = (AIGuess, PersonGuess)
+type Name = String
+type Names = (Name, Name)
+type Score = (PersonScore, PersonScore)
+type Turn = (PersonGuess, PersonGuess)
 data Mode = AI2P | P2P
 data GameState = GameState { score :: Score
                  , turns :: [Turn]
@@ -32,20 +32,20 @@ updateScore (cg, pg) =
   then first (+1)
   else second (+1)
 
-gameWinner :: Score -> String
-gameWinner s =
+gameWinner :: Names -> Score -> String
+gameWinner (p1, p2) s =
   case uncurry compare s of
-    GT -> "Beaten by the AI!"
+    GT -> "Way to go, " ++ p1 ++ "!"
     EQ -> "It is a draw!"
-    LT -> "Way to go, human!"
+    LT -> "Way to go, " ++ p2 ++ "!"
 
-turnWinner :: Turn -> String
-turnWinner (c, p) =
-  if odd $ c + p
-  then "- P wins"
-  else "- C wins"
+turnWinner :: Names -> Turn -> String
+turnWinner ns ts =
+  if even $ uncurry (+) ts
+  then "- " ++ fst ns ++ " wins"
+  else "- " ++ snd ns ++ " wins"
 
-parseInput :: Char -> Command Int
+parseInput :: Char -> Command PersonGuess
 parseInput ch
   | ch `elem` "Qq" = Quit
   | ch `elem` "12" = Valid $ read [ch]
@@ -57,31 +57,65 @@ parseMode ch
   | ch `elem` "Cc" = Right AI2P
   | otherwise = Left $ "Key pressed: " ++ [ch]
 
+invalid :: IO ()
+invalid = putStrLn "Type 1, 2 or Q for quit"
+
+quit :: Names -> Score -> IO ()
+quit (p1, p2) (s1, s2) = do
+  putStrLn $ concat [ "Final score -- " ++ p1 ++ ": "
+                    , show $ s1
+                    , " " ++ p2 ++ ": "
+                    , show $ s2 ]
+  putStrLn $ gameWinner (p1, p2) (s1, s2)
+  putStrLn "Quitting..."
+  exitSuccess
+
 gameRoutine :: Game -> IO ()
-gameRoutine (Game ref AI2P) = do
+gameRoutine (Game ref m) = do
   st <- readIORef ref
   let score' = score st
       turns' = turns st
+  case m of
+    AI2P -> do
+      let p1 = "C" :: Name
+          p2 = "P" :: Name
+          quit' = quit (p1, p2) score'
+      putStr $ p2 ++ ": " -- prompt person to play
+      input <- getChar -- person guess
+      _ <- getChar -- consuming newline, so it doesn't come back later
+      aiGuess <- randomRIO (1, 2) :: IO PersonGuess -- AI guess
+      putStrLn (p1 ++ ": " ++ show aiGuess) -- reveal AI guess
+      case parseInput input of
+        Invalid -> invalid
+        Quit -> quit'  
+        Valid pGuess -> do
+          let turn = (aiGuess, pGuess) :: Turn
+          writeIORef ref $ GameState (updateScore turn score') (turn:turns')
+          putStrLn $ turnWinner (p1, p2) turn
+    P2P -> do
+      let players = ("P1", "P2") :: (Name, Name)
+          quit' = quit players score'
+      g1 <- p2p $ fst players
+      g2 <- p2p $ snd players
+      case g1 of
+        Quit -> quit'
+        Invalid -> invalid
+        Valid g1' ->
+          case g2 of
+            Quit -> quit'
+            Invalid -> invalid
+            Valid g2' -> do
+              let turn = (g1', g2') :: Turn
+              writeIORef ref $ GameState (updateScore turn score') (turn:turns')
+              putStrLn $ turnWinner players turn
+              gameRoutine (Game ref P2P)
 
-  putStr "P: " -- prompt person to play
-  input <- getChar -- person guess
-  _ <- getChar -- consuming newline, so it doesn't come back later
-  aiGuess <- randomRIO (1, 2) :: IO AIGuess -- AI guess
-  putStrLn ("C: " ++ show aiGuess) -- reveal AI guess
-  case parseInput input of
-    Invalid -> putStrLn "Type 1, 2 or Q for quit"
-    Quit -> do
-      putStrLn $ concat [ "Final score -- C: "
-                        , show $ fst score'
-                        , " P: "
-                        , show $ snd score']
-      putStrLn $ gameWinner score'
-      putStrLn "Quitting..."
-      exitSuccess
-    Valid pGuess -> do
-      let turn = (aiGuess, pGuess) :: Turn
-      writeIORef ref $ GameState (updateScore turn score') (turn:turns')
-      putStrLn $ turnWinner turn
+p2p :: Name -> IO (Command PersonGuess)
+p2p p = do
+  putStr $ p ++ ": "
+  input <- getChar
+  _ <- getChar
+  return $ parseInput input
 
 app :: ReaderT Game IO ()
 app = do
@@ -96,6 +130,7 @@ main = do
   putStrLn "* P for Person to Person        *"
   putStrLn "* C for Person vs AI (Computer) *"
   putStrLn "******any other key to quit******"
+  putStr "Selection: "
   m <- getChar
   _ <- getChar
   case parseMode m of
