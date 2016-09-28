@@ -80,6 +80,36 @@ p2p p = do
   replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
   return $ parseInput input
 
+ai :: [Turn] -> IO PersonGuess
+ai ts =
+  if length ts < 3
+  then guess
+  else
+    let pattern = take 2 $ snd <$> ts
+        recall = lookup pattern $ trigrams ts
+    in case recall of
+      Nothing -> guess
+      Just r -> return r
+  where guess = randomRIO (1,2) :: IO PersonGuess
+
+trigrams :: [Turn] -> [([PersonGuess], PersonGuess)]
+trigrams ts =
+  if length ts < 3
+  then []
+  else
+    let [c,b,a] = take 3 $ snd <$> ts
+    in ([b,a],c) : trigrams (tail ts)
+
+rules :: Names -> IO ()
+rules (p1, p2) =
+  putStrLn $ concat [
+  "-- "
+  , p2
+  , " is odds, "
+  , p1
+  , " is evens."
+  ]
+
 gameRoutine :: Game -> IO ()
 gameRoutine (Game ref m) = do
   st <- readIORef ref
@@ -89,12 +119,13 @@ gameRoutine (Game ref m) = do
     AI2P -> do
       let players = ("C", "P") :: Names
           quit' = quit players score'
+      rules players
       pg <- p2p $ snd players
       case pg of
         Quit -> quit'
         Invalid -> invalid
         Valid personGuess -> do
-          aiGuess <- randomRIO (1, 2) :: IO PersonGuess -- AI guess
+          aiGuess <- ai turns' -- AI guess
           putStrLn (fst players ++ ": " ++ show aiGuess) -- reveal AI guess
           let turn = (aiGuess, personGuess) :: Turn
           writeIORef ref $ GameState (updateScore turn score') (turn:turns')
@@ -103,6 +134,7 @@ gameRoutine (Game ref m) = do
     P2P -> do
       let players = ("P1", "P2") :: Names
           quit' = quit players score'
+      rules players
       g1 <- p2p $ fst players
       g2 <- p2p $ snd players
       case g1 of
