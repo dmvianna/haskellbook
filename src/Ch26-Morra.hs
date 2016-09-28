@@ -1,6 +1,7 @@
 
 module Morra where
 
+import Control.Monad (replicateM_)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Data.Bifunctor
@@ -76,6 +77,7 @@ p2p p = do
   putStr $ p ++ ": "
   input <- getChar
   _ <- getChar
+  replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
   return $ parseInput input
 
 gameRoutine :: Game -> IO ()
@@ -112,7 +114,7 @@ gameRoutine (Game ref m) = do
             Invalid -> invalid
             Valid g2' -> do
               let turn = (g1', g2') :: Turn
-              writeIORef ref $ GameState (updateScore turn score') (turn:turns')
+              writeIORef ref $ GameState (updateScore turn score') turns'
               putStrLn $ turnWinner players turn
               gameRoutine (Game ref P2P)
 
