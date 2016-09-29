@@ -4,11 +4,12 @@ module MorraState where
 -- import Control.Monad (replicateM_)
 -- import Control.Monad.IO.Class
 -- import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Except
 import Control.Monad.Trans.State.Lazy
 import Data.Word8
 -- import Data.Bifunctor
 -- import Data.IORef
--- import System.Exit
+import System.Exit
 -- import System.IO
 import System.Random
 
@@ -24,13 +25,15 @@ data Score = Score { scoreA :: Word8
                    , scoreB :: Word8 }
            deriving Show
 
+data Mode = AI2P | P2P
+
 -- Scores
 
 updateScore :: Player -> Score -> Score
 updateScore p s =
   case p of
-    A -> Score {scoreA = scoreA s + 1, scoreB = scoreB s}
-    B -> Score {scoreA = scoreA s, scoreB = scoreB s + 1}
+    A -> Score { scoreA = scoreA s + 1, scoreB = scoreB s }
+    B -> Score { scoreA = scoreA s, scoreB = scoreB s + 1 }
 
 getWinner :: Turn -> Player
 getWinner (Turn a b) =
@@ -51,8 +54,8 @@ instance Random Guess where
 
 -- AI
 
-ai :: [Turn] -> IO Guess
-ai ts =
+aiTurn :: [Turn] -> IO Guess
+aiTurn ts =
   if length ts < 3
   then guess
   else
@@ -71,15 +74,20 @@ trigrams ts =
     let [c,b,a] = take 3 $ turnB <$> ts
     in ([b,a],c) : trigrams (tail ts)
 
+-- As we approach IO land, things get messier
 
--- play :: Turn -> StateT Score IO ()
--- play t = do
---   ts <- get
---   put $ t:ts
---   return $ getScore t:ts
+parseInput :: Char -> ExceptT (IO ()) IO Guess
+parseInput c
+  | c `elem` "Qq" = throwE exitSuccess
+  | c `elem` "12" = return $ (toEnum . (subtract 1) . read) [c]
+  | otherwise = throwE $ putStrLn "Press 0 for Even, 1 for Odd, and Q for Quit"
 
--- addTurn :: Score -> State [Turn] Score
--- addTurn x = do
---   xs <- get
---   put $ x:xs
---   return $ updateScore 
+parseMode :: Char -> ExceptT (IO ()) IO Mode
+parseMode c
+  | c `elem` "Pp" = return $ P2P
+  | c `elem` "Cc" = return $ AI2P
+  | otherwise = throwE $
+                (putStrLn $ "Key pressed: " ++ [c])
+                >> putStrLn "Quitting..."
+                >> exitSuccess
+
