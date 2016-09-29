@@ -1,5 +1,4 @@
 
-import Control.Monad
 import Control.Monad.Trans.State
 
 fizzBuzz :: Integer -> String
