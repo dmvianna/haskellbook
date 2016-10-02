@@ -5,7 +5,7 @@ module MorraState where
 -- import Control.Monad.IO.Class
 -- import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Except
-import Control.Monad.Trans.State.Lazy
+-- import Control.Monad.Trans.State.Lazy
 import Data.Word8
 -- import Data.Bifunctor
 -- import Data.IORef
@@ -76,11 +76,26 @@ trigrams ts =
 
 -- As we approach IO land, things get messier
 
+type Name = String
+
+player :: Mode -> Player -> Name
+player AI2P A = "Computer"
+player AI2P B = "Person"
+player P2P  A = "Person 1"
+player P2P  B = "Person 2"
+
+promptInput :: Name -> IO Char
+promptInput n = do
+  putStr $ n ++ ": "
+  c <- getChar
+  _ <- getChar
+  return c
+
 parseInput :: Char -> ExceptT (IO ()) IO Guess
 parseInput c
   | c `elem` "Qq" = throwE exitSuccess
   | c `elem` "12" = return $ (toEnum . (subtract 1) . read) [c]
-  | otherwise = throwE $ putStrLn "Press 0 for Even, 1 for Odd, and Q for Quit"
+  | otherwise = throwE $ putStrLn "Press 1 for Odd, 2 for Even, and Q for Quit"
 
 parseMode :: Char -> ExceptT (IO ()) IO Mode
 parseMode c
@@ -91,3 +106,10 @@ parseMode c
                 >> putStrLn "Quitting..."
                 >> exitSuccess
 
+main :: IO ()
+main = do
+  c <- promptInput $ player P2P A
+  c' <- runExceptT $ parseInput c
+  case c' of
+    Right x -> putStrLn $ show x
+    Left x -> x
