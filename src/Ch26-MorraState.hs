@@ -10,7 +10,7 @@ import Data.Word8
 -- import Data.Bifunctor
 -- import Data.IORef
 import System.Exit
--- import System.IO
+import System.IO
 import System.Random
 
 data Player = A | B deriving Show
@@ -106,10 +106,41 @@ parseMode c
                 >> putStrLn "Quitting..."
                 >> exitSuccess
 
+promptMode :: IO Char
+promptMode = do
+  putStrLn "*********Set game mode: *********"
+  putStrLn "* P for Person to Person        *"
+  putStrLn "* C for Person vs AI (Computer) *"
+  putStrLn "******any other key to quit******"
+  putStr "Selection: "
+  c <- getChar
+  _ <- getChar
+  return c
+
 main :: IO ()
 main = do
-  c <- promptInput $ player P2P A
+  hSetBuffering stdout NoBuffering
+  m'' <- promptMode
+  m' <- runExceptT $ parseMode m''
+  case m' of
+    Right m -> personGuess m
+    Left e -> e
+
+personGuess :: Mode -> IO ()
+personGuess m = do
+  c <- promptInput $ player m A
   c' <- runExceptT $ parseInput c
   case c' of
     Right x -> putStrLn $ show x
-    Left x -> x
+    Left e -> e
+
+
+  -- m <- getChar
+  -- _ <- getChar
+  -- case parseMode m of
+  --   Left e -> throwE exitSuccess
+  --   Right m' -> do
+  --     newGame <- newIORef $ GameState (0,0) []
+  --     let config = Game newGame m'
+  --         run r = runReaderT r config
+  --     run app
