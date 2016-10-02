@@ -1,4 +1,8 @@
 
+-- I know, it is a long file. Normally I would place it in a
+-- self-contained project with its own Module hierarchy. But
+-- I'm keeping it here with the other haskellbook exercises.
+
 module MorraState where
 
 -- import Control.Monad (replicateM_)
@@ -131,9 +135,9 @@ main = do
   m'' <- promptMode
   m' <- runExceptT $ parseMode m''
   case m' of
-    Right m -> do -- move to separate definitions
+    Right m -> do
       runReaderT printRules m
-      runReaderT personGuess m
+      runReaderT personGuess m -- that's where the game is played
     Left e -> e
 
 personGuess :: ReaderT Mode IO ()
