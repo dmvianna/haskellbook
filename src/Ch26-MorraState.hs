@@ -2,8 +2,8 @@
 module MorraState where
 
 -- import Control.Monad (replicateM_)
--- import Control.Monad.IO.Class
--- import Control.Monad.Trans.Reader
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Except
 -- import Control.Monad.Trans.State.Lazy
 import Data.Word8
@@ -84,6 +84,14 @@ player AI2P B = "Person"
 player P2P  A = "Person 1"
 player P2P  B = "Person 2"
 
+printRules :: ReaderT Mode IO ()
+printRules = do
+  m <- ask
+  liftIO $ do
+    putStrLn "Press 1 for Odds, 2 for evens."
+    putStrLn $ player m A ++ " is evens,"
+    putStrLn $ player m B ++ " is odds."
+
 promptInput :: Name -> IO Char
 promptInput n = do
   putStr $ n ++ ": "
@@ -123,24 +131,17 @@ main = do
   m'' <- promptMode
   m' <- runExceptT $ parseMode m''
   case m' of
-    Right m -> personGuess m
+    Right m -> do -- move to separate definitions
+      runReaderT printRules m
+      runReaderT personGuess m
     Left e -> e
 
-personGuess :: Mode -> IO ()
-personGuess m = do
-  c <- promptInput $ player m A
-  c' <- runExceptT $ parseInput c
+personGuess :: ReaderT Mode IO ()
+personGuess = do
+  m <- ask
+  c <- liftIO $ promptInput $ player m A
+  c' <- liftIO $ runExceptT $ parseInput c
   case c' of
-    Right x -> putStrLn $ show x
-    Left e -> e
+    Right x -> liftIO $ putStrLn $ show x
+    Left e -> liftIO $ e
 
-
-  -- m <- getChar
-  -- _ <- getChar
-  -- case parseMode m of
-  --   Left e -> throwE exitSuccess
-  --   Right m' -> do
-  --     newGame <- newIORef $ GameState (0,0) []
-  --     let config = Game newGame m'
-  --         run r = runReaderT r config
-  --     run app
