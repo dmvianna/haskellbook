@@ -76,6 +76,6 @@ main = do
 
 
 foldTree :: (a -> b -> b) -> b -> BinaryTree a -> b
-foldTree f b Leaf               = b
+foldTree _ b Leaf               = b
 foldTree f b (Node Leaf a Leaf) = f a b
 foldTree f b (Node l a r)       = foldTree f (f a (foldTree f b l)) r
