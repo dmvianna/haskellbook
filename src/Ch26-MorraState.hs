@@ -9,7 +9,7 @@ module MorraState where
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Except
--- import Control.Monad.Trans.State.Lazy
+import Control.Monad.Trans.State.Lazy
 import Data.Word8
 -- import Data.Bifunctor
 -- import Data.IORef
@@ -95,6 +95,9 @@ printRules = do
     putStrLn "Press 1 for Odds, 2 for evens."
     putStrLn $ player m A ++ " is evens,"
     putStrLn $ player m B ++ " is odds."
+
+game :: ReaderT Mode (StateT [Turn] IO) ()
+game = undefined
 
 promptInput :: Name -> IO Char
 promptInput n = do
