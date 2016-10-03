@@ -48,6 +48,12 @@ getWinner (Turn a b) =
 getScore :: [Turn] -> Score
 getScore = foldr (updateScore . getWinner) (Score 0 0)
 
+finalWinner :: Score -> Player
+finalWinner s =
+  if scoreA s > scoreB s
+  then A
+  else B
+
 -- Random generator
 
 instance Random Guess where
@@ -103,11 +109,15 @@ promptInput n = do
   _ <- getChar
   return c
 
-parseInput :: Char -> ExceptT (IO ()) IO Guess
+parseInput :: Char -> ExceptT (IO Char) IO Guess
 parseInput c
-  | c `elem` "Qq" = throwE exitSuccess
+  | c `elem` "Qq" = throwE $ do
+    putStrLn "Quitting..." >> exitSuccess
   | c `elem` "12" = return $ (toEnum . (subtract 1) . read) [c]
-  | otherwise = throwE $ putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
+  | otherwise = liftIO $ do
+    putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
+    exitSuccess -- I actually want to loop
+    
 
 parseMode :: Char -> ExceptT (IO ()) IO Mode
 parseMode c
@@ -116,7 +126,6 @@ parseMode c
   | otherwise = throwE $
                 (putStrLn $ "Key pressed: " ++ [c])
                 >> putStrLn "Quitting..."
-                >> exitSuccess
 
 promptMode :: IO Char
 promptMode = do
@@ -143,8 +152,14 @@ ai2p = do
       liftIO $ putStrLn $ c ++ ": " ++ show aig
       liftIO $ putStrLn $ "- " ++ w ++ " wins"
       ai2p
-    Left e -> liftIO e
-  
+    Left e -> do
+      let score = getScore ts
+      liftIO $ do
+        putStrLn $ player AI2P A ++ ": " ++ (show . scoreA) score
+        putStrLn $ player AI2P B ++ ": " ++ (show . scoreB) score
+        putStrLn $ "Way to go, " ++ (player AI2P $ finalWinner score) ++ "!"
+        e >> return ()
+
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
@@ -156,10 +171,9 @@ main = do
       runStateT ai2p [] >> return ()
     Left e -> e
 
-personGuess :: Player -> ReaderT Mode IO (Either (IO ()) Guess)
+personGuess :: Player -> ReaderT Mode IO (Either (IO Char) Guess)
 personGuess p = do
   m <- ask
   c <- liftIO $ promptInput $ player m p
   c' <- liftIO $ runExceptT $ parseInput c
   return c'
-
