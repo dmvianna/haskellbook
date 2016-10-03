@@ -92,7 +92,7 @@ printRules :: ReaderT Mode IO ()
 printRules = do
   m <- ask
   liftIO $ do
-    putStrLn "Press 1 for Odds, 2 for evens."
+    putStrLn "Press 1 for odds, 2 for evens."
     putStrLn $ player m A ++ " is evens,"
     putStrLn $ player m B ++ " is odds."
 
