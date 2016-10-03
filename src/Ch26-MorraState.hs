@@ -96,9 +96,6 @@ printRules = do
     putStrLn $ player m A ++ " is evens,"
     putStrLn $ player m B ++ " is odds."
 
-game :: ReaderT Mode (StateT [Turn] IO) ()
-game = undefined
-
 promptInput :: Name -> IO Char
 promptInput n = do
   putStr $ n ++ ": "
@@ -132,6 +129,22 @@ promptMode = do
   _ <- getChar
   return c
 
+ai2p :: StateT [Turn] IO ()
+ai2p = do
+  ts <- get
+  aig <- liftIO $ aiTurn ts
+  pg' <- liftIO $ runReaderT (personGuess B) AI2P
+  case pg' of
+    Right pg -> do
+      let turn = Turn aig pg
+          w = player AI2P $ getWinner turn
+          c = player AI2P A
+      put $ turn:ts
+      liftIO $ putStrLn $ c ++ ": " ++ show aig
+      liftIO $ putStrLn $ "- " ++ w ++ " wins"
+      ai2p
+    Left e -> liftIO e
+  
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
@@ -140,16 +153,7 @@ main = do
   case m' of
     Right AI2P -> do
       runReaderT printRules AI2P
-      aig <- aiTurn [] -- Add state later
-      pg' <- runReaderT (personGuess B) AI2P -- that's where the game is played
-      case pg' of
-        Right pg -> do
-          let turn = Turn aig pg
-              w = player AI2P $ getWinner turn
-              c = player AI2P A
-          putStrLn $ c ++ ": " ++ show aig
-          putStrLn $ "- " ++ w ++ " wins"
-        Left e -> e
+      runStateT ai2p [] >> return ()
     Left e -> e
 
 personGuess :: Player -> ReaderT Mode IO (Either (IO ()) Guess)
