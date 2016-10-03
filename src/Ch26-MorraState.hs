@@ -155,6 +155,7 @@ ai2p = do
     Left e -> do
       let score = getScore ts
       liftIO $ do
+        putStrLn $ "***** Score *****"
         putStrLn $ player AI2P A ++ ": " ++ (show . scoreA) score
         putStrLn $ player AI2P B ++ ": " ++ (show . scoreB) score
         putStrLn $ "Way to go, " ++ (player AI2P $ finalWinner score) ++ "!"
