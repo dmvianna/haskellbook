@@ -110,7 +110,7 @@ parseInput :: Char -> ExceptT (IO ()) IO Guess
 parseInput c
   | c `elem` "Qq" = throwE exitSuccess
   | c `elem` "12" = return $ (toEnum . (subtract 1) . read) [c]
-  | otherwise = throwE $ putStrLn "Press 1 for Odd, 2 for Even, and Q for Quit"
+  | otherwise = throwE $ putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
 
 parseMode :: Char -> ExceptT (IO ()) IO Mode
 parseMode c
@@ -140,15 +140,16 @@ main = do
   case m' of
     Right m -> do
       runReaderT printRules m
-      runReaderT personGuess m -- that's where the game is played
+      g <- runReaderT personGuess m -- that's where the game is played
+      case g of
+        Right x -> putStrLn $ show x
+        Left e -> e
     Left e -> e
 
-personGuess :: ReaderT Mode IO ()
+personGuess :: ReaderT Mode IO (Either (IO ()) Guess)
 personGuess = do
   m <- ask
   c <- liftIO $ promptInput $ player m A
   c' <- liftIO $ runExceptT $ parseInput c
-  case c' of
-    Right x -> liftIO $ putStrLn $ show x
-    Left e -> liftIO $ e
+  return c'
 
