@@ -75,13 +75,7 @@ main = do
   testPostorder
 
 
-foldTree :: (a -> b -> b -> b) -> b -> BinaryTree a -> b
-foldTree f b node =
-  case node of
-       Node Leaf a Leaf -> f a b b
-       Node Leaf a right -> f a b (foldTree f b right)
-       Node left a Leaf -> f a b (foldTree f b left)
-       Node left a right -> f a (foldTree f b right) (foldTree f b left)
-
-mapTree' :: (a -> b) -> BinaryTree a -> BinaryTree b
-mapTree' f = foldTree (\a b c -> Node b (f a) c) Leaf
+foldTree :: (a -> b -> b) -> b -> BinaryTree a -> b
+foldTree f b Leaf               = b
+foldTree f b (Node Leaf a Leaf) = f a b
+foldTree f b (Node l a r)       = foldTree f (f a (foldTree f b l)) r
