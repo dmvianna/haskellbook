@@ -138,18 +138,24 @@ main = do
   m'' <- promptMode
   m' <- runExceptT $ parseMode m''
   case m' of
-    Right m -> do
-      runReaderT printRules m
-      g <- runReaderT personGuess m -- that's where the game is played
-      case g of
-        Right x -> putStrLn $ show x
+    Right AI2P -> do
+      runReaderT printRules AI2P
+      aig <- aiTurn [] -- Add state later
+      pg' <- runReaderT (personGuess B) AI2P -- that's where the game is played
+      case pg' of
+        Right pg -> do
+          let turn = Turn aig pg
+              w = player AI2P $ getWinner turn
+              c = player AI2P A
+          putStrLn $ c ++ ": " ++ show aig
+          putStrLn $ "- " ++ w ++ " wins"
         Left e -> e
     Left e -> e
 
-personGuess :: ReaderT Mode IO (Either (IO ()) Guess)
-personGuess = do
+personGuess :: Player -> ReaderT Mode IO (Either (IO ()) Guess)
+personGuess p = do
   m <- ask
-  c <- liftIO $ promptInput $ player m A
+  c <- liftIO $ promptInput $ player m p
   c' <- liftIO $ runExceptT $ parseInput c
   return c'
 
