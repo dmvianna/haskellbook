@@ -85,6 +85,7 @@ trigrams ts =
     in ([b,a],c) : trigrams (tail ts)
 
 -- As we approach IO land, things get messier
+-- Strings
 
 type Name = String
 
@@ -102,6 +103,8 @@ printRules = do
     putStrLn $ player m A ++ " is evens,"
     putStrLn $ player m B ++ " is odds."
 
+-- Person input
+
 promptInput :: Name -> IO Char
 promptInput n = do
   putStr $ n ++ ": "
@@ -117,7 +120,15 @@ parseInput c
   | otherwise = liftIO $ do
     putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
     exitSuccess -- I actually want to loop
-    
+
+personGuess :: Player -> ReaderT Mode IO (Either (IO Char) Guess)
+personGuess p = do
+  m <- ask
+  c <- liftIO $ promptInput $ player m p
+  c' <- liftIO $ runExceptT $ parseInput c
+  return c'
+
+-- Modes
 
 parseMode :: Char -> ExceptT (IO ()) IO Mode
 parseMode c
@@ -171,10 +182,3 @@ main = do
       runReaderT printRules AI2P
       runStateT ai2p [] >> return ()
     Left e -> e
-
-personGuess :: Player -> ReaderT Mode IO (Either (IO Char) Guess)
-personGuess p = do
-  m <- ask
-  c <- liftIO $ promptInput $ player m p
-  c' <- liftIO $ runExceptT $ parseInput c
-  return c'
