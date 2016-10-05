@@ -121,7 +121,9 @@ parseInput c
     putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
     exitSuccess -- I actually want to loop
 
-personGuess :: Player -> ReaderT Mode IO (Either (IO Char) Guess)
+personGuess :: MonadIO m
+               => Player
+               -> ReaderT Mode m (Either (IO Char) Guess)
 personGuess p = do
   m <- ask
   c <- liftIO $ promptInput $ player m p
