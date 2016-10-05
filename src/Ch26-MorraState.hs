@@ -174,6 +174,7 @@ printScore m ts = do
   putStrLn $ player m A ++ ": " ++ (show . scoreA) score
   putStrLn $ player m B ++ ": " ++ (show . scoreB) score
   putStrLn $ "Way to go, " ++ (player m $ finalWinner score) ++ "!"
+  putStrLn $ "*****************"
 
 p2pGuess :: Player -> IO Guess
 p2pGuess p = do
@@ -190,8 +191,11 @@ p2p = do
   g'' <- liftIO $ p2pGuess B
   ts  <- get
   let turn = Turn g' g''
-  put $ turn:ts
-  liftIO $ putStrLn $ "- " ++ (player P2P $ getWinner turn) ++ " wins"
+      ts' = turn:ts
+  liftIO $ do
+    putStrLn $ "- " ++ (player P2P $ getWinner turn) ++ " wins"
+    printScore P2P ts'
+  put ts'
   p2p
 
 main :: IO ()
