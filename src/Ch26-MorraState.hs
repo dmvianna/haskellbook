@@ -175,22 +175,24 @@ printScore m ts = do
   putStrLn $ player m B ++ ": " ++ (show . scoreB) score
   putStrLn $ "Way to go, " ++ (player m $ finalWinner score) ++ "!"
 
+p2pGuess :: Player -> IO Guess
+p2pGuess p = do
+  pg <- runReaderT (personGuess p) P2P
+  case pg of
+    Right g ->
+      replicateM_ 12 (putStrLn "\n") >> return g -- poor man's blank screen
+    Left e ->
+      e >> p2pGuess p
+
 p2p :: StateT [Turn] IO ()
 p2p = do
-  ts <- get
-  pg' <- liftIO $ runReaderT (personGuess A) P2P
-  liftIO $ replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
-  pg'' <- liftIO $ runReaderT (personGuess B) P2P
-  liftIO $ replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
-  case (pg', pg'') of
-    (Right g', Right g'') -> do
-      let turn = Turn g' g''
-          w = player P2P $ getWinner turn
-      put $ turn:ts
-      liftIO $ putStrLn $ "- " ++ w ++ " wins"
-      p2p
-    (Left e, _) -> liftIO (printScore P2P ts) >> liftIO e >> p2p >> return ()
-    (_, Left e) -> liftIO (printScore P2P ts) >> liftIO e >> p2p >> return ()
+  g'  <- liftIO $ p2pGuess A
+  g'' <- liftIO $ p2pGuess B
+  ts  <- get
+  let turn = Turn g' g''
+  put $ turn:ts
+  liftIO $ putStrLn $ "- " ++ (player P2P $ getWinner turn) ++ " wins"
+  p2p
 
 main :: IO ()
 main = do
