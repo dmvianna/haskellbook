@@ -11,8 +11,6 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.State.Lazy
 import Data.Word8
--- import Data.Bifunctor
--- import Data.IORef
 import System.Exit
 import System.IO
 import System.Random
@@ -112,18 +110,19 @@ promptInput n = do
   _ <- getChar
   return c
 
-parseInput :: Char -> ExceptT (IO Char) IO Guess
+parseInput :: Char -> ExceptT (IO ()) IO Guess
 parseInput c
-  | c `elem` "Qq" = throwE $ do
-    putStrLn "Quitting..." >> exitSuccess
   | c `elem` "12" = return $ (toEnum . (subtract 1) . read) [c]
-  | otherwise = liftIO $ do
-    putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
-    exitSuccess -- I actually want to loop
+  | otherwise = throwE $ exceptHandler c
+
+exceptHandler :: Char -> IO ()
+exceptHandler c
+  | c `elem` "Qq" = putStrLn "Quitting..." >> exitSuccess
+  | otherwise = putStrLn "Press '1' for Odd, '2' for Even, and Q for Quit"
 
 personGuess :: MonadIO m
                => Player
-               -> ReaderT Mode m (Either (IO Char) Guess)
+               -> ReaderT Mode m (Either (IO ()) Guess)
 personGuess p = do
   m <- ask
   c <- liftIO $ promptInput $ player m p
@@ -172,7 +171,7 @@ ai2p = do
         putStrLn $ player AI2P A ++ ": " ++ (show . scoreA) score
         putStrLn $ player AI2P B ++ ": " ++ (show . scoreB) score
         putStrLn $ "Way to go, " ++ (player AI2P $ finalWinner score) ++ "!"
-        e >> return ()
+        e >> runStateT ai2p ts >> return ()
 
 main :: IO ()
 main = do
