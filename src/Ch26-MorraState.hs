@@ -5,7 +5,7 @@
 
 module MorraState where
 
--- import Control.Monad (replicateM_)
+import Control.Monad (replicateM_)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Except
@@ -164,14 +164,33 @@ ai2p = do
       liftIO $ putStrLn $ c ++ ": " ++ show aig
       liftIO $ putStrLn $ "- " ++ w ++ " wins"
       ai2p
-    Left e -> do
-      let score = getScore ts
-      liftIO $ do
-        putStrLn $ "***** Score *****"
-        putStrLn $ player AI2P A ++ ": " ++ (show . scoreA) score
-        putStrLn $ player AI2P B ++ ": " ++ (show . scoreB) score
-        putStrLn $ "Way to go, " ++ (player AI2P $ finalWinner score) ++ "!"
-        e >> runStateT ai2p ts >> return ()
+    Left e -> liftIO $ printScore AI2P ts
+              >> e >> runStateT ai2p ts >> return ()
+
+printScore :: Mode -> [Turn] -> IO ()
+printScore m ts = do
+  let score = getScore ts
+  putStrLn $ "***** Score *****"
+  putStrLn $ player m A ++ ": " ++ (show . scoreA) score
+  putStrLn $ player m B ++ ": " ++ (show . scoreB) score
+  putStrLn $ "Way to go, " ++ (player m $ finalWinner score) ++ "!"
+
+p2p :: StateT [Turn] IO ()
+p2p = do
+  ts <- get
+  pg' <- liftIO $ runReaderT (personGuess A) P2P
+  liftIO $ replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
+  pg'' <- liftIO $ runReaderT (personGuess B) P2P
+  liftIO $ replicateM_ 12 $ putStrLn "\n" -- poor man's blank screen
+  case (pg', pg'') of
+    (Right g', Right g'') -> do
+      let turn = Turn g' g''
+          w = player P2P $ getWinner turn
+      put $ turn:ts
+      liftIO $ putStrLn $ "- " ++ w ++ " wins"
+      p2p
+    (Left e, _) -> liftIO (printScore P2P ts) >> liftIO e >> p2p >> return ()
+    (_, Left e) -> liftIO (printScore P2P ts) >> liftIO e >> p2p >> return ()
 
 main :: IO ()
 main = do
@@ -182,4 +201,7 @@ main = do
     Right AI2P -> do
       runReaderT printRules AI2P
       runStateT ai2p [] >> return ()
+    Right P2P -> do
+      runReaderT printRules P2P
+      runStateT p2p [] >> return ()
     Left e -> e
