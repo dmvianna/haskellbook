@@ -1,11 +1,11 @@
 
 module Apl1 where
 
-import Control.Applicative
-import Data.Monoid
-import Test.QuickCheck
-import Test.QuickCheck.Checkers
-import Test.QuickCheck.Classes
+import           Control.Applicative
+import           Data.Monoid
+import           Test.QuickCheck
+import           Test.QuickCheck.Checkers
+import           Test.QuickCheck.Classes
 
 instance Monoid a => Monoid (ZipList a) where
   mempty = pure mempty
@@ -24,7 +24,7 @@ instance Eq a => EqProp (ZipList a) where (=-=) = eq
 data List a = Nil | Cons a (List a) deriving (Eq, Show)
 
 instance Functor List where
-  fmap f Nil = Nil
+  fmap f Nil         = Nil
   fmap f (Cons x xs) = Cons (f x) (fmap f xs)
 
 instance Monoid (List a) where
@@ -32,11 +32,11 @@ instance Monoid (List a) where
   mappend = append
 
 append :: List a -> List a -> List a
-append Nil ys = ys
+append Nil ys         = ys
 append (Cons x xs) ys = Cons x (append xs ys)
 
 fold :: (a -> b -> b) -> b -> List a -> b
-fold _ b Nil = b
+fold _ b Nil        = b
 fold f b (Cons h t) = f h (fold f b t)
 
 concat' :: List (List a) -> List a
@@ -49,7 +49,7 @@ instance Applicative List where
   pure x = Cons x Nil
   _ <*> Nil = Nil
   Nil <*> _ = Nil
-  Cons f fs <*> xs = append (flatMap (fmap f) (Cons xs Nil)) (fs <*> xs)
+  Cons f fs <*> xs = append (fmap f xs) (fs <*> xs)
 
 instance Eq a => EqProp (List a) where
     xs =-= ys = xs' `eq` ys'
