@@ -1,11 +1,11 @@
 
-import Test.QuickCheck
-import Test.QuickCheck.Checkers
-import Test.QuickCheck.Classes
-import Control.Applicative
-import Data.Monoid
-import Data.Functor
-import Control.Monad (join, (>=>))
+import           Control.Applicative
+import           Control.Monad            (join, (>=>))
+import           Data.Functor
+import           Data.Monoid
+import           Test.QuickCheck
+import           Test.QuickCheck.Checkers
+import           Test.QuickCheck.Classes
 
 
 mcomp :: (Monad m, Functor m) => (b -> m c) -> (a -> m b) -> a -> m c
@@ -58,7 +58,7 @@ instance Eq a => EqProp (Nope a) where (=-=) = eq
 data PEither b a = Left a | Right b deriving (Eq, Show)
 
 instance Functor (PEither b) where
-  fmap f (Main.Left a) = Main.Left (f a)
+  fmap f (Main.Left a)  = Main.Left (f a)
   fmap f (Main.Right b) = Main.Right b
 
 instance Applicative (PEither b) where
@@ -113,21 +113,23 @@ instance Eq a => EqProp (Identity a) where (=-=) = eq
 data List a = Nil | Cons a (List a) deriving (Eq, Show)
 
 instance Functor List where
-  fmap _ Nil = Nil
+  fmap _ Nil        = Nil
   fmap f (Cons h t) = Cons (f h) (fmap f t)
 
-append :: List a -> List a -> List a
-append Nil xs = xs
-append (Cons x xs) ys = Cons x (append xs ys)
+instance Monoid (List a) where
+    mempty = Nil
+    mappend Nil lb         = lb
+    mappend (Cons a la) lb = Cons a (la `mappend` lb)
 
 instance Applicative List where
-  pure = undefined
-  (<*>) = undefined
+    pure a = Cons a Nil
+
+    (<*>) Nil _          = Nil
+    (<*>) (Cons f fs) as = mappend (fmap f as) (fs <*> as)
 
 instance Monad List where
   return x = Cons x Nil
-  Nil >>= _ = Nil
-  Cons h t >>= f = append (f h) (t >>= f)
+  as >>= f  = join $ fmap f as
 
 instance Arbitrary a => Arbitrary (List a) where
   arbitrary = genList
@@ -178,4 +180,3 @@ meh (x:xs) f = do
 
 flipType :: (Functor m, Monad m) => [m a] -> m [a]
 flipType = (flip meh) id
-
