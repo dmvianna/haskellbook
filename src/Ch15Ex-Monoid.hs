@@ -184,7 +184,7 @@ testBD :: BoolDisj -> BoolDisj -> Bool
 testBD x x' = (\ (BoolDisj a) (BoolDisj b) -> a || b) x x' ==
               (\ (BoolDisj a) -> a) (x <> x')
 
--- 6. Or
+-- 6. Or 
 
 data Or a b = Fst a | Snd b deriving (Eq, Show)
 
@@ -207,6 +207,7 @@ genOr = do
   b <- arbitrary
   elements [Fst a, Snd b]
 
+--Doesn't quickCheck --NOTE LeftAssociativity not working
 testOr :: (Eq a, Eq b) => Or a b -> Or a b -> Bool
 testOr x x' = case (x, x') of
   (Fst _, Snd a) -> x <> x' == Snd a
