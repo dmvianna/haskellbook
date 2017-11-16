@@ -129,7 +129,8 @@ instance Applicative List where
 
 instance Monad List where
   return x = Cons x Nil
-  as >>= f  = join $ fmap f as
+  Nil >>= _f = Nil
+  Cons head tail >>= f = append (f head) (tail >>= f)
 
 instance Arbitrary a => Arbitrary (List a) where
   arbitrary = genList
