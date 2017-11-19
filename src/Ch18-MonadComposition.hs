@@ -173,6 +173,7 @@ l2 = liftA2
 a :: (Applicative m, Monad m) => m a -> m (a -> b) -> m b
 a = flip (<*>)
 
+-- meh ≡ flip (mapM f as)
 meh :: (Functor m, Monad m) => [a] -> (a -> m b) -> m [b]
 meh [] _ = return []
 meh (x:xs) f = do
