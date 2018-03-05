@@ -76,18 +76,8 @@ unfold f x =
 
 -- 2. Tree builder
 
-treeBuild' :: Integer -> Maybe (Integer, Integer, Integer)
-treeBuild' n = if n < 1
-               then Nothing
-               else Just (n-1, n, n-1)
-
 treeBuild :: Integer -> BinaryTree Integer
-treeBuild = treeFix . (unfold treeBuild')
-
-treeFix :: BinaryTree Integer -> BinaryTree Integer
-treeFix t = go t 0
-    where go (Node a b c) acc =
-              Node (go a (acc + 1)) acc (go c (acc + 1))
-          go Leaf _ = Leaf
-
--- Cheeky. Can't be done directly.
+treeBuild n =
+  unfold (\x -> if x >= n
+                then Nothing
+                else Just (x+1, x, x+1)) 0
