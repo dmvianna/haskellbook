@@ -150,7 +150,7 @@ prop_dollar =
 prop_concat :: Property
 prop_concat =
   forAll (genTuple :: Gen ([Int], [Int]))
-  (\(x, y) -> foldr (:) x y == (++) x y)
+  (\(x, y) -> foldr (:) y x == (++) x y)
 
 prop_concat' :: Property
 prop_concat' =
