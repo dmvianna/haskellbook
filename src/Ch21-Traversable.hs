@@ -169,58 +169,46 @@ genList = do
   frequency [ (3, return $ Cons h t)
             , (1, return Nil) ]
 
--- Three
+-- Big
 
-data Three a b c = Three a b c deriving (Eq, Show)
+data Big a b = Big a b b
+             deriving (Show, Eq)
 
-instance Functor (Three a b) where
-  fmap f (Three a b c) = Three a b (f c)
+instance Functor (Big a) where
+  fmap f (Big a b1 b2) = Big a (f b1) (f b2)
 
-instance Foldable (Three a b) where
-  foldMap f (Three _ _ c) = f c
+instance Foldable (Big a) where
+  foldMap f (Big _ b b') = f b <> f b'
+  foldr f y (Big _ b b') = f b' y
 
-instance Traversable (Three a b) where
-  traverse f (Three a b c) = Three a b <$> f c
+instance Traversable (Big a) where
+  traverse f (Big a b b') = (Big a) <$> f b <*> f b'
+  sequenceA  (Big a b b') = (Big a) <$>   b <*>   b'
+  -- Shorter alternative: sequenceA = traverse id
 
-instance (Eq a, Eq b, Eq c) => EqProp (Three a b c) where
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Big a b) where
+  arbitrary = Big <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance (Eq a, Eq b) => EqProp (Big a b) where
   (=-=) = eq
 
-instance (Arbitrary a, Arbitrary b, Arbitrary c) =>
-    Arbitrary (Three a b c) where
-        arbitrary = genThree
+-- Bigger
+data Bigger a b = Bigger a b b b
+                deriving (Show, Eq)
 
-genThree :: (Arbitrary a, Arbitrary b, Arbitrary c) =>
-            Gen (Three a b c)
-genThree = do
-  a <- arbitrary
-  b <- arbitrary
-  c <- arbitrary
-  return $ Three a b c
+instance Functor (Bigger a) where
+  fmap f (Bigger a x y z) = Bigger a (f x) (f y) (f z)
 
--- Three'
+instance Foldable (Bigger a) where
+  foldMap f (Bigger _ x y z) = f x <> f y <> f z
 
-data Three' a b = Three' a b b deriving (Eq, Show)
+instance Traversable (Bigger a) where
+  traverse f (Bigger a x y z) = (Bigger a) <$> f x <*> f y <*> f z
 
-instance Functor (Three' a) where
-  fmap f (Three' a b b') = Three' a (f b) (f b')
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Bigger a b) where
+  arbitrary = Bigger <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
-instance Foldable (Three' a) where
-  foldMap f (Three' _ b b') = f b `mappend` f b'
-
-instance Traversable (Three' a) where
-  traverse f (Three' a b b') = Three' a <$> f b <*> f b'
-
-instance (Arbitrary a, Arbitrary b) => Arbitrary (Three' a b) where
-  arbitrary = genThree'
-
-genThree' :: (Arbitrary a, Arbitrary b) => Gen (Three' a b)
-genThree' = do
-  a <- arbitrary
-  b <- arbitrary
-  b' <- arbitrary
-  return $ Three' a b b'
-
-instance (Eq a, Eq b) => EqProp (Three' a b) where
+instance (Eq a, Eq b) => EqProp (Bigger a b) where
   (=-=) = eq
 
 -- S
@@ -235,7 +223,7 @@ instance Foldable n => Foldable (S n) where
 
 instance Traversable n => Traversable (S n) where
   traverse f (S n a) = S <$> traverse f n <*> f a
-  
+
 instance (Eq (n a), Eq a) => EqProp (S n a) where
   (=-=) = eq
 
@@ -270,6 +258,10 @@ instance Foldable Tree where
   foldMap f (Node n x n') =
     foldMap f n `mappend` f x `mappend` foldMap f n'
 
+  foldr _ y Empty        = y
+  foldr f y (Leaf x)     = f x y
+  foldr f y (Node l x r) = f x $ foldr f (foldr f y r) l
+
 instance Traversable Tree where
   traverse _ Empty = pure Empty
   traverse f (Leaf x) = Leaf <$> f x
@@ -297,8 +289,8 @@ idTrigger = undefined :: Identity (Int, Int, [Int])
 constTrigger = undefined :: Constant Int (Int, Int, [Int])
 opTrigger = undefined :: Optional (Int, Int, [Int])
 listTrigger = undefined :: List (Int, Int, [Int])
-threeTrigger = undefined :: Three Int Int (Int, Int, [Int])
-three'Trigger = undefined :: Three' Int (Int, Int, [Int])
+bigTrigger = undefined :: Big Int Int (Int, Int, [Int])
+biggerTrigger = undefined :: Bigger Int (Int, Int, [Int])
 sTrigger = undefined :: S Maybe (Int, Int, [Int])
 treeTrigger = undefined :: Tree (Int, Int, [Int])
 
@@ -312,10 +304,10 @@ main = do
   quickBatch (traversable opTrigger)
   putStr "\nList"
   quickBatch (traversable listTrigger)
-  putStr "\nThree"
-  quickBatch (traversable threeTrigger)
-  putStr "\nThree'"
-  quickBatch (traversable three'Trigger)
+  putStr "\nBig"
+  quickBatch (traversable bigTrigger)
+  putStr "\nBigger"
+  quickBatch (traversable biggerTrigger)
   putStr "\nS"
   quickBatch (traversable sTrigger)
   putStr "\nTree"
