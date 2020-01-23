@@ -135,7 +135,8 @@ instance Monad (Reader r) where
         -> Reader r b
   (Reader ra) >>= aRb =
     join $ Reader $ \r -> aRb (ra r)
-
+    --  Reader ra >>= aRb = Reader $ \r -> let (Reader rb) = aRb (ra r) in rb r
+  
 getDogR'' :: Reader Person Dog
 getDogR'' = Dog <$> Reader dogName <*> Reader address
 
